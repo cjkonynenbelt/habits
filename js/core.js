@@ -5,7 +5,7 @@
 
   const HT = (window.HT = {});
   const STORAGE_KEY = 'habits.data';
-  HT.VERSION = 2; // 1 = habits only, 2 = habits + finance
+  HT.VERSION = 4; // 1 = habits only, 2 = + finance, 3 = + weight, 4 = + health & fitness
 
   /* ---------- dates (always local time, keyed as YYYY-MM-DD) ---------- */
 
@@ -142,6 +142,8 @@
       entries: {},
       settings: defaultSettings(),
       finance: HT.normalizeFinance ? HT.normalizeFinance(null) : null, // shape lives in finance.js
+      weight: HT.normalizeWeight ? HT.normalizeWeight(null) : null, // shape lives in weight.js
+      health: HT.normalizeHealth ? HT.normalizeHealth(null) : null, // shape lives in health.js
       meta: { lastBackup: null, notified: {} },
     };
   }
@@ -189,6 +191,8 @@
   /* Bring any older/foreign data up to the current shape. Add a step per version bump. */
   const MIGRATIONS = {
     1: (data) => { data.finance = data.finance || null; data.version = 2; },
+    2: (data) => { data.weight = data.weight || null; data.version = 3; },
+    3: (data) => { data.health = data.health || null; data.version = 4; },
   };
   HT.migrate = (input) => {
     if (!input || typeof input !== 'object' || !Array.isArray(input.trackers)) {
@@ -225,6 +229,8 @@
       notifications: !!s.notifications,
     };
     out.finance = HT.normalizeFinance(data.finance);
+    out.weight = HT.normalizeWeight(data.weight);
+    out.health = HT.normalizeHealth(data.health);
     const m = data.meta && typeof data.meta === 'object' ? data.meta : {};
     out.meta = { lastBackup: m.lastBackup || null, notified: m.notified && typeof m.notified === 'object' ? m.notified : {} };
     return out;
@@ -248,6 +254,8 @@
       try { localStorage.setItem(STORAGE_KEY + '.unreadable', localStorage.getItem(STORAGE_KEY)); } catch (e) { /* ignore */ }
     }
     if (!HT.data.finance) HT.data.finance = HT.normalizeFinance(null);
+    if (!HT.data.weight) HT.data.weight = HT.normalizeWeight(null);
+    if (!HT.data.health) HT.data.health = HT.normalizeHealth(null);
   };
   HT.save = () => {
     try {
@@ -268,6 +276,8 @@
     entries: HT.data.entries,
     settings: HT.data.settings,
     finance: HT.data.finance,
+    weight: HT.data.weight,
+    health: HT.data.health,
   });
   HT.importData = (obj) => {
     const next = HT.migrate(obj); // throws before anything is replaced

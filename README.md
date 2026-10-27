@@ -32,10 +32,34 @@ connections and no third-party scripts.
 - **Activity** — everything in one list, filtered by week, month, year or a custom range
 - **Optional habit link** — a habit such as "Save $20" can offer to add that amount to a goal
 
+**Health & fitness** (the Health tab: Overview · Weight · Daily · Workouts · Supplements · Shopping)
+
+- **Weight** — quick weigh-in from Today; date, time and an optional note; several weigh-ins a day are kept
+  and averaged for that day. Graph for 1W / 1M / 3M / 6M / 1Y / All with a 7-day average line, tap-to-read
+  points, change / average / range for the selected period, optional goal that works for losing, gaining or holding.
+  lb or kg (stored in kg, so switching never changes your data). Optional weigh-in reminder.
+- **Daily log** — water, sleep (hours + minutes), steps, exercise, calories, protein, body weight and your own
+  metrics. Turn each on or off, set optional targets, reorder, review and edit past days. A metric can be linked
+  to an existing habit, which then stays the single record (nothing is tracked twice).
+- **Workouts** — quick entry (activity + minutes) or full detail: distance, exercises with sets, reps and weight,
+  notes. Reusable templates, 8-week chart, this-week / 30-day totals, best performances from your own log,
+  and an optional "also mark this habit done".
+- **Supplements** — your routine (name, serving as on the label, schedule, time of day), a daily Taken / Skip
+  checklist, a 14-day history that separates "skipped" from "not logged", pause or remove. Tracking only: the app
+  never suggests products, doses or combinations.
+- **Shopping & inventory** — vitamins, supplements, protein and gear with category, status (research / want /
+  restock / purchased / not buying), priority, quantity, estimated price, store, link, notes, try-vs-regular,
+  stock on hand, days of supply, running-low warnings, actual price paid, recurring monthly cost. Filter and sort;
+  marking an item purchased can optionally add a Finance expense.
+- **Overview** — weight change and average, workout frequency and time, daily averages, chosen health habits,
+  supplement logging and health spending for 1M / 3M / 6M / 1Y, shown only when there is enough data.
+- **Today screen widgets** — habits, weight, health metrics, workout, supplement checklist and health purchases;
+  choose and reorder them in Settings → Today screen.
+
 **Everywhere**
 
 - Light / dark / system theme
-- Export, import and backup as one JSON file (habits + finance)
+- Export, import and backup as one JSON file (habits + finance + weight + health)
 - Works offline and installs to the home screen (PWA)
 
 ## Project structure
@@ -53,8 +77,12 @@ habit-tracker/
 │   ├── ui.js               Helpers: icons, sheets/dialogs, toasts, drag-to-reorder
 │   ├── views.js            Habit screens and the tracker form
 │   ├── finance.js          The whole Finance section (data, maths, screens)
+│   ├── weight.js           Body weight (data, maths, screen, graph, Today widget)
+│   ├── health.js           Health & fitness: daily metrics, workouts, supplements, shopping, overview, widgets
 │   └── app.js              Routing, navigation, theme, reminders, startup
 ├── icons/                  App icons (192, 512, maskable, Apple touch)
+├── tests/                  Node tests for the data logic (no dependencies)
+├── package.json            Only holds the "npm test" script; there is no build step
 ├── dev/
 │   └── serve.ps1           Optional local preview server (not used by GitHub Pages)
 └── README.md
@@ -151,7 +179,7 @@ No other deployment configuration is needed.
 ## Updating the app later
 
 Upload the changed files to the repository (or `git push`). Also change the version on the first line of
-code in `sw.js` (`const CACHE = 'habits-v1'` → `'habits-v2'`) so phones fetch the new files. Open the app
+code in `sw.js` (currently `const CACHE = 'habits-v3'` → next `'habits-v4'`, and so on) so phones fetch the new files. Open the app
 twice after updating: the first open downloads the update, the second one shows it. Your data is not affected.
 
 ## Data format
@@ -160,17 +188,23 @@ One JSON object, saved in the browser's `localStorage` under `habits.data` and u
 
 ```json
 {
-  "version": 2,
+  "version": 4,
   "trackers": [],
   "entries": { "2026-10-01": { "trackerId": 3 } },
   "settings": {},
   "finance": { "currency": "CAD", "goals": [], "transactions": [], "recurring": [],
-               "budget": {}, "accounts": [], "netWorthHistory": [], "categories": {} }
+               "budget": {}, "accounts": [], "netWorthHistory": [], "categories": {} },
+  "weight": { "unit": "lb", "goal": null, "start": null, "reminder": {},
+              "entries": [{ "date": "2026-10-03", "time": "07:10", "kg": 84.0961, "note": "" }] },
+  "health": { "metrics": [], "daily": { "2026-10-03": { "m_water": 1500 } }, "workouts": [], "templates": [],
+              "items": [], "routines": [], "intake": { "2026-10-03": { "routineId": { "s": "taken", "d": 1 } } },
+              "widgets": [], "categories": [], "settings": {} }
 }
 ```
 
 `version` lets future releases migrate older data (see `MIGRATIONS` in `js/core.js`; version 1 backups,
-from before Finance existed, still import). New tracker types are added with `HT.registerType` in `js/core.js`.
+from before Finance existed, still import; version 3 → 4 only adds the empty `health` section).
+Stored units: weight kg, water ml, distance km, sleep and workout time in minutes. New tracker types are added with `HT.registerType` in `js/core.js`.
 
 ## Preview locally (optional)
 
@@ -181,3 +215,12 @@ powershell -ExecutionPolicy Bypass -File dev/serve.ps1
 ```
 
 Then open <http://localhost:8095>. On localhost the offline cache is off unless you add `?sw` to the address.
+
+## Tests
+
+The data logic (migrations, weight maths, units, daily metrics, workouts, supplements, inventory, costs,
+export/import) is covered by tests that load the real app scripts in Node. Node 20 or newer, no install needed:
+
+```bash
+npm test
+```

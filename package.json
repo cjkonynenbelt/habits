@@ -1,0 +1,8 @@
+{
+  "name": "habits",
+  "private": true,
+  "description": "Habits - a private habit, finance, weight and health tracker. Static site; no build step.",
+  "scripts": {
+    "test": "node --test \"tests/*.test.mjs\""
+  }
+}

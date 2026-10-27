@@ -14,6 +14,8 @@
   HT.icon = {
     today: ico('<circle cx="12" cy="12" r="8.5"/><path d="m8.5 12.2 2.4 2.4 4.6-5"/>'),
     finance: ico('<path d="M4 20h16M7 16v-4M12 16V9M17 16v-6M4 9l5-4 4 3 7-5"/>'),
+    health: ico('<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/><path d="M8.5 12h2l1-2 1.5 4 1-2h1.5"/>'),
+    weight: ico('<rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M8.5 9.5a5 5 0 0 1 7 0M12 8v2.5"/>'),
     history: ico('<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>'),
     stats: ico('<path d="M5 20V11M12 20V4M19 20v-6"/>'),
     trackers: ico('<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>'),

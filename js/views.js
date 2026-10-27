@@ -114,11 +114,16 @@
     const head = pageHead('Today', d.toLocaleDateString(undefined, { weekday: 'long' }) + ', ' + d.toLocaleDateString(undefined, { month: 'long', day: 'numeric' }));
     const addRow = '<button type="button" class="add-row" data-action="add-tracker">' + icon.plus + '<span>Add Tracker</span></button>';
 
+    /* Today is a stack of widgets; the order and visibility are chosen in Settings → Today screen. */
+    const widgets = HT.health ? HT.health.widgetOrder() : ['habits', 'weight'];
+    const others = (id) => (id === 'weight' ? (HT.weight ? HT.weight.todayWidget() : '') : HT.health ? HT.health.widget(id) : '');
+    const compose = (habitsHTML) => head + widgets.map((id) => (id === 'habits' ? habitsHTML : others(id))).join('');
+
     if (!HT.data.trackers.length) {
-      return head + '<section class="empty"><div class="empty-mark">' + icon.today + '</div><h2>Start with one habit</h2>' +
+      return compose('<section class="empty"><div class="empty-mark">' + icon.today + '</div><h2>Start with one habit</h2>' +
         '<p>Create a tracker for anything you want to do daily — a checkbox, a number, minutes, a counter.</p>' +
         '<button type="button" class="btn btn-primary btn-lg" data-action="add-tracker">' + icon.plus + '<span>Add Tracker</span></button>' +
-        '<p class="empty-sub">Or start from an idea</p>' + templateChips() + '</section>';
+        '<p class="empty-sub">Or start from an idea</p>' + templateChips() + '</section>');
     }
 
     let list = HT.sorted().filter((t) => t.status === 'active' && t.startDate <= key);
@@ -129,7 +134,7 @@
     const off = list.filter((t) => !HT.isExpected(t, key));
     const s = HT.daySummary(key), tx = summaryText(s);
 
-    let html = head +
+    let html =
       '<section class="summary' + (s.total > 0 && s.done === s.total ? ' complete' : '') + '" id="summary">' +
       '<div class="ring"><svg viewBox="0 0 72 72" width="84" height="84"><circle class="ring-bg" cx="36" cy="36" r="30"/>' +
       '<circle class="ring-fg" cx="36" cy="36" r="30" stroke-dasharray="' + RING + '" style="stroke-dashoffset:' + RING * (1 - s.ratio) + '"/></svg>' +
@@ -147,7 +152,7 @@
       html += '<h2 class="section-title">Not scheduled today</h2><ul class="tlist off">' + off.map((t) => card(t, key)).join('') + '</ul>';
     }
     if (sort === 'manual' && due.length > 1) html += '<p class="hint center">Press and hold a tracker to reorder</p>';
-    return html;
+    return compose('<section class="widget" data-widget="habits">' + html + '</section>');
   };
 
   /* ---------- logging ---------- */
@@ -706,20 +711,22 @@
       '<div class="set-block"><div class="sw-title">Week starts on</div>' + seg('weekStart', [[0, 'Sunday'], [1, 'Monday']], st.weekStart) + '</div></section>' +
 
       (HT.finance ? HT.finance.settingsHTML() : '') +
+      (HT.weight ? HT.weight.settingsHTML() : '') +
+      (HT.health ? HT.health.settingsHTML() : '') +
 
       '<h2 class="section-title">Reminders</h2><section class="panel-card">' + notif +
       '<p class="hint">This app has no server, so it can only alert you while it is open or was used recently — your phone may not deliver a reminder if the app has been closed for a while. ' +
       'When you open the app it will always show any reminders you missed. For an alarm that must fire, also set one in your phone\'s Clock or Reminders app.</p></section>' +
 
       '<h2 class="section-title">Data</h2><section class="panel-card">' +
-      '<p class="muted">' + plural(HT.data.trackers.length, 'tracker') + ' · ' + plural(days, 'day') + ' of entries · finance data · stored only on this device' +
+      '<p class="muted">' + plural(HT.data.trackers.length, 'tracker') + ' · ' + plural(days, 'day') + ' of entries · finance, weight and health data · stored only on this device' +
       (HT.storageOK ? '' : ' · <b class="danger-text">saving is failing</b>') + '</p>' +
       '<div class="set-row"><div><div class="sw-title">Back up</div><div class="hint">' + (HT.data.meta.lastBackup ? 'Last backup ' + esc(fmtShort(HT.data.meta.lastBackup.slice(0, 10))) : 'No backup yet') + '. Save the file to Files, iCloud or email.</div></div>' +
       '<button type="button" class="btn btn-primary" data-action="backup">Back up</button></div>' +
       '<div class="set-row"><div><div class="sw-title">Export data</div><div class="hint">Download everything as a JSON file.</div></div><button type="button" class="btn" data-action="export">Export</button></div>' +
       '<div class="set-row"><div><div class="sw-title">Import data</div><div class="hint">Restore from a backup file. Replaces what is here.</div></div>' +
       '<button type="button" class="btn" data-action="import">Import</button><input type="file" id="import-file" accept="application/json,.json" hidden></div>' +
-      '<div class="set-row"><div><div class="sw-title">Reset all data</div><div class="hint">Delete every tracker, entry and finance record on this device.</div></div><button type="button" class="btn btn-danger-ghost" data-action="reset">Reset</button></div></section>' +
+      '<div class="set-row"><div><div class="sw-title">Reset all data</div><div class="hint">Delete every tracker, entry, finance record, weigh-in and health record on this device.</div></div><button type="button" class="btn btn-danger-ghost" data-action="reset">Reset</button></div></section>' +
 
       '<h2 class="section-title">Install</h2><section class="panel-card"><p class="muted"><b>iPhone:</b> open this page in Safari, tap Share, then “Add to Home Screen”. ' +
       '<b>Android:</b> open the browser menu and tap “Install app”. Once installed it opens full screen and works offline.</p>' +
@@ -783,7 +790,9 @@
       const ok = await HT.confirm({
         title: 'Restore backup?',
         message: 'The backup has <b>' + plural(checked.trackers.length, 'tracker') + '</b> and <b>' + plural(Object.keys(checked.entries).length, 'day') +
-          '</b> of entries. It will replace everything currently in the app.',
+          '</b> of entries' + (checked.weight && checked.weight.entries.length ? ', <b>' + plural(checked.weight.entries.length, 'weigh-in') + '</b>' : '') +
+          (checked.health && checked.health.workouts.length ? ', <b>' + plural(checked.health.workouts.length, 'workout') + '</b>' : '') +
+          ', plus any finance and health records. It will replace everything currently in the app.',
         confirmLabel: 'Restore',
       });
       if (!ok) return;
@@ -797,7 +806,7 @@
   HT.actions['reset'] = async () => {
     const ok = await HT.confirm({
       title: 'Reset all data?',
-      message: 'This deletes <b>every tracker, all history and all finance data</b> on this device. It can\'t be undone — export a backup first if you might want it back.',
+      message: 'This deletes <b>every tracker, all history, and all finance, weight and health data</b> on this device. It can\'t be undone — export a backup first if you might want it back.',
       confirmLabel: 'Delete everything',
       danger: true,
     });

@@ -6,6 +6,7 @@
   const TABS = [
     ['today', 'Today'],
     ['finance', 'Finance'],
+    ['health', 'Health'],
     ['history', 'History'],
     ['stats', 'Stats'],
     ['trackers', 'Trackers'],
@@ -44,7 +45,7 @@
     const r = HT.route;
     renderedDay = HT.today();
     HT.$('#view').innerHTML = HT.views[r.name](r.arg);
-    const tab = r.name === 'tracker' ? 'trackers' : r.name === 'fgoal' ? 'finance' : r.name;
+    const tab = r.name === 'tracker' ? 'trackers' : r.name === 'fgoal' ? 'finance' : r.name === 'weight' ? 'health' : r.name;
     HT.$$('#nav a').forEach((a) => {
       if (a.dataset.tab === tab) a.setAttribute('aria-current', 'page');
       else a.removeAttribute('aria-current');
@@ -74,7 +75,11 @@
     const fn = HT.actions[el.dataset.action];
     if (fn) fn(el, e);
   });
-  document.addEventListener('sorted', (e) => HT.reorder(e.detail.ids));
+  document.addEventListener('sorted', (e) => {
+    const kind = e.target.dataset ? e.target.dataset.sortable : '';
+    if (kind && HT.health && HT.health.reorder(kind, e.detail.ids)) return;
+    HT.reorder(e.detail.ids);
+  });
 
   /* ---------- reminders ----------
      There is no server, so reminders are checked by the page itself: every 30 seconds while the
@@ -124,10 +129,16 @@
     if (!log || log.date !== today || !Array.isArray(log.ids)) log = HT.data.meta.notified = { date: today, ids: [] };
     const due = HT.data.trackers.filter((t) =>
       t.status === 'active' && t.reminder.enabled && t.reminder.time <= hm && !log.ids.includes(t.id) && HT.isExpected(t, today) && !HT.isDone(t, today));
-    if (!due.length) return;
+    const labels = due.map((t) => t.icon + ' ' + t.name);
     due.forEach((t) => log.ids.push(t.id));
+    // The optional weigh-in reminder rides on the same check but is its own setting.
+    if (HT.weight && !log.ids.includes('weight') && HT.weight.reminderDue(hm)) {
+      log.ids.push('weight');
+      labels.push('⚖️ Weigh-in');
+    }
+    if (!labels.length) return;
     HT.save();
-    const names = due.map((t) => t.icon + ' ' + t.name).join(', ');
+    const names = labels.join(', ');
     if (document.visibilityState !== 'visible' && canNotify()) showNotification('Habit reminder', names);
     else HT.toast('Reminder: ' + names);
   }
