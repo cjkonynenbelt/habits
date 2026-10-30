@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const FILES = ['js/core.js', 'js/ui.js', 'js/views.js', 'js/finance.js', 'js/weight.js', 'js/health.js'];
+const FILES = ['js/core.js', 'js/ui.js', 'js/views.js', 'js/finance.js', 'js/weight.js', 'js/health.js', 'js/nutrition.js'];
 
 export function loadApp() {
   const store = new Map();

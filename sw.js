@@ -1,6 +1,6 @@
 /* Habits service worker — makes the app work offline.
    Bump CACHE whenever you change any file so phones pick up the new version. */
-const CACHE = 'habits-v3';
+const CACHE = 'habits-v4';
 const ASSETS = [
   './',
   'index.html',
@@ -11,6 +11,7 @@ const ASSETS = [
   'js/finance.js',
   'js/weight.js',
   'js/health.js',
+  'js/nutrition.js',
   'js/app.js',
   'manifest.webmanifest',
   'icons/icon-192.png',

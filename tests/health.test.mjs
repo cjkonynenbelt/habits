@@ -7,7 +7,7 @@ const near = (a, b, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} is not
 const lbToKg = (lb) => lb / LB;
 const json = (x) => JSON.parse(JSON.stringify(x));
 
-test('version 3 data (habits + finance + weight) migrates to v4 without losing anything', () => {
+test('version 3 data (habits + finance + weight) migrates to the current version without losing anything', () => {
   const { HT } = loadApp();
   const v3 = {
     version: 3,
@@ -18,7 +18,7 @@ test('version 3 data (habits + finance + weight) migrates to v4 without losing a
     weight: { unit: 'lb', goal: lbToKg(175), entries: [{ id: 'w1', date: '2026-10-01', kg: lbToKg(190) }, { id: 'w2', date: '2026-10-03', kg: lbToKg(188), note: 'ok' }] },
   };
   const out = HT.migrate(v3);
-  assert.equal(out.version, 4);
+  assert.equal(out.version, HT.VERSION);
   assert.deepEqual(json(out.trackers.map((t) => t.name)), ['Workout']);
   assert.deepEqual(json(out.entries), { '2026-10-02': { t1: 1 } });
   assert.equal(out.finance.goals[0].current, 250);
@@ -32,7 +32,7 @@ test('version 3 data (habits + finance + weight) migrates to v4 without losing a
 test('a version 1 backup still upgrades all the way', () => {
   const { HT } = loadApp();
   const out = HT.migrate({ version: 1, trackers: [{ id: 'a', name: 'Old', type: 'boolean' }], entries: {} });
-  assert.equal(out.version, 4);
+  assert.equal(out.version, HT.VERSION);
   assert.equal(out.trackers[0].name, 'Old');
   assert.ok(out.finance && out.weight && out.health);
 });
@@ -41,10 +41,10 @@ test('saved data in the browser is upgraded on load and kept', () => {
   const { HT, store } = loadApp();
   store.set('habits.data', JSON.stringify({ version: 3, trackers: [{ id: 'x', name: 'Stretch', type: 'boolean' }], entries: {}, weight: { entries: [{ date: '2026-10-01', kg: 80 }] } }));
   HT.load();
-  assert.equal(HT.data.version, 4);
+  assert.equal(HT.data.version, HT.VERSION);
   assert.equal(HT.data.trackers[0].name, 'Stretch');
   assert.equal(HT.data.weight.entries[0].kg, 80);
-  assert.ok(HT.data.health.widgets.length === 6);
+  assert.ok(HT.data.health.widgets.length === 7);
 });
 
 test('weight goal maths: losing, gaining and the example from the brief', () => {
@@ -260,7 +260,7 @@ test('health data is cleaned on load: bad values and orphan references are dropp
   assert.deepEqual(json(h.intake), {});
   assert.equal(h.widgets[0].id, 'shopping');
   assert.equal(h.widgets[0].on, false);
-  assert.equal(h.widgets.length, 6);
+  assert.equal(h.widgets.length, 7);
 });
 
 test('export then import keeps every section, including health', () => {

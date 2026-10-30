@@ -4,8 +4,10 @@ A private, installable web app for tracking daily habits and personal finance go
 It is a plain static site (HTML, CSS, JavaScript — no build step, no server, no account), made to be
 hosted for free on GitHub Pages and used mainly from a phone.
 
-**All data stays in your browser.** Nothing is sent anywhere; there are no analytics, no bank
-connections and no third-party scripts.
+**All data stays in your browser.** There are no accounts, analytics or bank connections. The only
+outside services are optional Nutrition features: barcode lookups and product search on Open Food Facts
+(only the barcode or search words are sent), meal-photo recognition on LogMeal (only if you add your own
+token), and two libraries downloaded from jsDelivr the first time you scan a barcode or a label.
 
 ## What's in it
 
@@ -56,6 +58,25 @@ connections and no third-party scripts.
 - **Today screen widgets** — habits, weight, health metrics, workout, supplement checklist and health purchases;
   choose and reorder them in Settings → Today screen.
 
+**Nutrition** (Health → Nutrition)
+
+- **Diary** — breakfast, lunch, dinner, snacks and your own meal categories; each entry shows serving, calories,
+  protein, carbohydrate and fat. Edit, delete, duplicate, move between meals, log past days.
+- **Dashboard** — calories eaten / left, protein, carbohydrate, fat, fibre, sugars, sodium and any other nutrients
+  the foods list. Targets are optional and set by you.
+- **Barcode scanner** — phone camera (or a photo, or typing the number) → Open Food Facts product: name, brand,
+  serving, nutrition, ingredients, allergens. Choose how much you had; products are cached for 30 days and can be
+  favourited. Not found → scan its label, search, or enter it yourself.
+- **Nutrition label scanner** — photograph a Canadian (or US) Nutrition Facts table; text recognition runs on the
+  phone and fills an editable form you confirm before saving to your foods.
+- **Photograph your meal** — with your own LogMeal token, recognised foods and estimated grams appear as an
+  editable list (rename, change grams, remove, add) that you confirm before saving. Without a token you build the
+  meal by hand from your foods, recipes or quick add. Photo entries are marked as estimates.
+- **Recipes** — ingredients, quantities and servings → nutrition per serving; log a serving in one tap.
+- **Trends** — week / month / 3 months: averages per logged day, how often calorie and protein targets were met,
+  and a week-by-week table next to weight change and workouts.
+- Health's "Calories" and "Protein" metrics read the food diary on days you log food, so nothing is entered twice.
+
 **Everywhere**
 
 - Light / dark / system theme
@@ -79,6 +100,7 @@ habit-tracker/
 │   ├── finance.js          The whole Finance section (data, maths, screens)
 │   ├── weight.js           Body weight (data, maths, screen, graph, Today widget)
 │   ├── health.js           Health & fitness: daily metrics, workouts, supplements, shopping, overview, widgets
+│   ├── nutrition.js        Food diary, Open Food Facts, barcode / label / meal-photo scanning, recipes, trends
 │   └── app.js              Routing, navigation, theme, reminders, startup
 ├── icons/                  App icons (192, 512, maskable, Apple touch)
 ├── tests/                  Node tests for the data logic (no dependencies)
@@ -161,7 +183,25 @@ No other deployment configuration is needed.
 - **Back up** — Settings → **Back up** (or **Export**) saves a `habits-backup-DATE.json` file.
   **Import** restores it. Do this now and then, and always before clearing browser data or changing phones.
 
+## Setting up meal-photo recognition (optional)
+
+1. Create an account at <https://logmeal.com/api> (30-day free trial with all features, then a paid plan).
+2. In LogMeal, get an **APIUser** token — their docs say image recognition only works with APIUser tokens, and
+   nutrition values need the trial or their Monitor plan or higher.
+3. In Habits: Health → Nutrition → Settings → paste it into "LogMeal API token" and save.
+
+The token is stored only on that device, sent only to LogMeal with a meal photo, and never put in backups —
+so add it again on each device. Because there is no server, the token lives in your browser rather than on a
+server; anyone with access to your unlocked phone could read it, so use a token you can revoke.
+
 ## Limitations (because this is a static site with no server)
+
+- **Nutrition values are estimates for your own tracking**, not clinically verified data or medical advice.
+  Open Food Facts is a community database; check products against the package.
+- **Open Food Facts name search is unreliable from browsers.** Their service often refuses name searches from web
+  pages ("busy"), while barcode lookups keep working. The app says so and falls back to your own foods.
+- **Barcode scanning on iPhone** uses a downloaded decoder (iPhone Safari has no built-in one); the first scan needs a
+  connection. Label text recognition downloads about 7 MB the first time.
 
 - **Data lives in one browser on one device.** There is no sync between phone and computer. Move data
   with Export → Import. Clearing Safari/Chrome website data deletes it — keep a backup.
@@ -179,7 +219,7 @@ No other deployment configuration is needed.
 ## Updating the app later
 
 Upload the changed files to the repository (or `git push`). Also change the version on the first line of
-code in `sw.js` (currently `const CACHE = 'habits-v3'` → next `'habits-v4'`, and so on) so phones fetch the new files. Open the app
+code in `sw.js` (currently `const CACHE = 'habits-v4'` → next `'habits-v5'`, and so on) so phones fetch the new files. Open the app
 twice after updating: the first open downloads the update, the second one shows it. Your data is not affected.
 
 ## Data format
@@ -188,7 +228,7 @@ One JSON object, saved in the browser's `localStorage` under `habits.data` and u
 
 ```json
 {
-  "version": 4,
+  "version": 5,
   "trackers": [],
   "entries": { "2026-10-01": { "trackerId": 3 } },
   "settings": {},

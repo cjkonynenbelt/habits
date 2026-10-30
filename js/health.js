@@ -39,7 +39,7 @@
   ];
   const KINDS = ['weight', 'workout', 'water', 'duration', 'count', 'quantity', 'boolean'];
   const CUSTOM_KINDS = [['quantity', 'Amount that adds up (e.g. g, cups)'], ['count', 'Single number (e.g. kcal, resting HR)'], ['duration', 'Hours and minutes'], ['boolean', 'Yes / no']];
-  const WIDGETS = [['habits', 'Today\'s habits'], ['weight', 'Body weight'], ['metrics', 'Health metrics and targets'], ['workout', 'Workout'], ['supplements', 'Supplement checklist'], ['shopping', 'Health purchases']];
+  const WIDGETS = [['habits', 'Today\'s habits'], ['weight', 'Body weight'], ['metrics', 'Health metrics and targets'], ['workout', 'Workout'], ['supplements', 'Supplement checklist'], ['shopping', 'Health purchases'], ['nutrition', 'Nutrition']];
   const ITEM_STATUS = [['research', 'Need to research'], ['want', 'Want to buy'], ['restock', 'Need to restock'], ['purchased', 'Purchased'], ['dropped', 'Not buying anymore']];
   const TO_BUY = ['research', 'want', 'restock'];
   const PRIORITY = [['high', 'High'], ['medium', 'Medium'], ['low', 'Low']];
@@ -344,9 +344,9 @@
   /* ---------- shared UI pieces ---------- */
 
   H.vs = { day: null, suppDay: null, period: '3M', status: 'tobuy', category: '', priority: '', sort: 'priority', allWorkouts: false };
-  const TABS = [['', 'Overview'], ['weight', 'Weight'], ['daily', 'Daily'], ['workouts', 'Workouts'], ['supplements', 'Supplements'], ['shopping', 'Shopping']];
+  const TABS = [['', 'Overview'], ['weight', 'Weight'], ['nutrition', 'Nutrition'], ['daily', 'Daily'], ['workouts', 'Workouts'], ['supplements', 'Supplements'], ['shopping', 'Shopping']];
   H.subnav = (cur) => '<nav class="hsub" aria-label="Health sections">' + TABS.map((t) => {
-    const href = t[0] === 'weight' ? '#/weight' : '#/health' + (t[0] ? '/' + t[0] : '');
+    const href = t[0] === 'weight' ? '#/weight' : t[0] === 'nutrition' ? '#/nutrition' : '#/health' + (t[0] ? '/' + t[0] : '');
     return '<a href="' + href + '"' + (t[0] === cur ? ' aria-current="page"' : '') + '>' + t[1] + '</a>';
   }).join('') + '</nav>';
   H.head = (title, right) => '<header class="page-head"><div><div class="eyebrow">Health</div><h1>' + title + '</h1></div>' + (right || '') + '</header>';
@@ -1205,6 +1205,7 @@
   const section = (id, title, inner, link) => '<section class="widget" data-widget="' + id + '"><div class="widget-h"><h2 class="section-title">' + title + '</h2>' + (link ? '<a class="linkish" href="' + link[0] + '">' + link[1] + '</a>' : '') + '</div>' + inner + '</section>';
   H.widget = (id) => {
     const today = HT.today();
+    if (id === 'nutrition') return HT.nutrition ? HT.nutrition.todayWidget() : '';
     if (id === 'metrics') {
       const list = H.metrics().filter((m) => m.enabled && m.kind !== 'weight' && m.kind !== 'workout');
       if (!list.length) return '';
