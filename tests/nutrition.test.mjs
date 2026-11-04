@@ -12,7 +12,7 @@ test('v4 data upgrades to v5 with an empty nutrition section and nothing else ch
   const v4 = { version: 4, trackers: [{ id: 't', name: 'Walk', type: 'boolean' }], entries: { '2026-10-01': { t: 1 } },
     weight: { entries: [{ date: '2026-10-01', kg: 80 }] }, health: { workouts: [{ date: '2026-10-01', type: 'run', duration: 30 }] } };
   const out = HT.migrate(v4);
-  assert.equal(out.version, 5);
+  assert.equal(out.version, HT.VERSION);
   assert.equal(out.trackers[0].name, 'Walk');
   assert.equal(out.weight.entries[0].kg, 80);
   assert.equal(out.health.workouts[0].duration, 30);

@@ -34,7 +34,7 @@ token), and two libraries downloaded from jsDelivr the first time you scan a bar
 - **Activity** — everything in one list, filtered by week, month, year or a custom range
 - **Optional habit link** — a habit such as "Save $20" can offer to add that amount to a goal
 
-**Health & fitness** (the Health tab: Overview · Weight · Daily · Workouts · Supplements · Shopping)
+**Health & fitness** (the Health tab — second in the bottom bar: Overview · Weight · Nutrition · Strength · Daily · Workouts · Supplements · Shopping)
 
 - **Weight** — quick weigh-in from Today; date, time and an optional note; several weigh-ins a day are kept
   and averaged for that day. Graph for 1W / 1M / 3M / 6M / 1Y / All with a 7-day average line, tap-to-read
@@ -46,6 +46,20 @@ token), and two libraries downloaded from jsDelivr the first time you scan a bar
 - **Workouts** — quick entry (activity + minutes) or full detail: distance, exercises with sets, reps and weight,
   notes. Reusable templates, 8-week chart, this-week / 30-day totals, best performances from your own log,
   and an optional "also mark this habit done".
+- **Strength training** (Health → Strength: Overview · Exercises · History · Records)
+  - Exercises: a library of 40+ common lifts (Bench Press, Squat, Deadlift, Overhead Press, Barbell Row,
+    Pull-ups, Lat Pulldown, Bicep Curls, Tricep Extensions, Leg Press, Romanian Deadlift…) or your own,
+    organised by muscle group; rename, regroup or delete.
+  - Logging: pick an exercise, then weight × reps × sets in rows (different weights in one session are separate
+    rows). Prefilled from your last session; any date; optional notes; edit or delete later. Blank weight =
+    bodyweight. Logging the same exercise twice on one day adds to that day's session.
+  - Each exercise: current working weight, previous session, all-time heaviest, best set, estimated 1RM
+    (Epley, from sets of 1–12 reps), improvement since your first session, sessions, total reps and volume,
+    and a tap-to-read chart (est. 1RM, top weight, volume or reps) for 1M / 3M / 6M / 1Y / All.
+  - Personal records are detected automatically (heaviest weight, best est. 1RM, highest volume, most reps in a
+    set) whenever a session beats every earlier one; new ones are announced on saving and tagged PR.
+  - History by day, filterable by exercise and date range; open any session for its sets.
+  - Sessions are saved in the same workout log as Workouts (no second copy), so they count everywhere workouts do.
 - **Supplements** — your routine (name, serving as on the label, schedule, time of day), a daily Taken / Skip
   checklist, a 14-day history that separates "skipped" from "not logged", pause or remove. Tracking only: the app
   never suggests products, doses or combinations.
@@ -101,6 +115,7 @@ habit-tracker/
 │   ├── weight.js           Body weight (data, maths, screen, graph, Today widget)
 │   ├── health.js           Health & fitness: daily metrics, workouts, supplements, shopping, overview, widgets
 │   ├── nutrition.js        Food diary, Open Food Facts, barcode / label / meal-photo scanning, recipes, trends
+│   ├── strength.js         Strength training: exercise list, set logging, progress charts, records, history
 │   └── app.js              Routing, navigation, theme, reminders, startup
 ├── icons/                  App icons (192, 512, maskable, Apple touch)
 ├── tests/                  Node tests for the data logic (no dependencies)
@@ -219,7 +234,7 @@ server; anyone with access to your unlocked phone could read it, so use a token 
 ## Updating the app later
 
 Upload the changed files to the repository (or `git push`). Also change the version on the first line of
-code in `sw.js` (currently `const CACHE = 'habits-v4'` → next `'habits-v5'`, and so on) so phones fetch the new files. Open the app
+code in `sw.js` (currently `const CACHE = 'habits-v5'` → next `'habits-v6'`, and so on) so phones fetch the new files. Open the app
 twice after updating: the first open downloads the update, the second one shows it. Your data is not affected.
 
 ## Data format
@@ -228,7 +243,7 @@ One JSON object, saved in the browser's `localStorage` under `habits.data` and u
 
 ```json
 {
-  "version": 5,
+  "version": 6,
   "trackers": [],
   "entries": { "2026-10-01": { "trackerId": 3 } },
   "settings": {},
@@ -238,12 +253,15 @@ One JSON object, saved in the browser's `localStorage` under `habits.data` and u
               "entries": [{ "date": "2026-10-03", "time": "07:10", "kg": 84.0961, "note": "" }] },
   "health": { "metrics": [], "daily": { "2026-10-03": { "m_water": 1500 } }, "workouts": [], "templates": [],
               "items": [], "routines": [], "intake": { "2026-10-03": { "routineId": { "s": "taken", "d": 1 } } },
-              "widgets": [], "categories": [], "settings": {} }
+              "widgets": [], "categories": [], "settings": {},
+              "exercises": [{ "id": "ex…", "name": "Bench Press", "group": "Chest" }] }
 }
 ```
 
 `version` lets future releases migrate older data (see `MIGRATIONS` in `js/core.js`; version 1 backups,
-from before Finance existed, still import; version 3 → 4 only adds the empty `health` section).
+from before Finance existed, still import; version 3 → 4 only adds the empty `health` section; 5 → 6 builds
+the strength exercise list from lifts already in the workout log). A strength session is an entry in
+`health.workouts[].exercises` with `exId` pointing at `health.exercises`, its `sets` (`reps`, `kg`) and optional `notes`.
 Stored units: weight kg, water ml, distance km, sleep and workout time in minutes. New tracker types are added with `HT.registerType` in `js/core.js`.
 
 ## Preview locally (optional)

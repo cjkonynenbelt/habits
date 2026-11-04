@@ -5,7 +5,7 @@
 
   const HT = (window.HT = {});
   const STORAGE_KEY = 'habits.data';
-  HT.VERSION = 5; // 1 = habits only, 2 = + finance, 3 = + weight, 4 = + health & fitness, 5 = + nutrition
+  HT.VERSION = 6; // 1 = habits only, 2 = + finance, 3 = + weight, 4 = + health & fitness, 5 = + nutrition, 6 = + strength exercises
 
   /* ---------- dates (always local time, keyed as YYYY-MM-DD) ---------- */
 
@@ -195,6 +195,8 @@
     2: (data) => { data.weight = data.weight || null; data.version = 3; },
     3: (data) => { data.health = data.health || null; data.version = 4; },
     4: (data) => { data.nutrition = data.nutrition || null; data.version = 5; },
+    // The strength exercise list is built from existing workout entries by HT.normalizeHealth.
+    5: (data) => { data.version = 6; },
   };
   HT.migrate = (input) => {
     if (!input || typeof input !== 'object' || !Array.isArray(input.trackers)) {

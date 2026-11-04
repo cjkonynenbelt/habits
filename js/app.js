@@ -5,8 +5,8 @@
 
   const TABS = [
     ['today', 'Today'],
-    ['finance', 'Finance'],
     ['health', 'Health'],
+    ['finance', 'Finance'],
     ['history', 'History'],
     ['stats', 'Stats'],
     ['trackers', 'Trackers'],
@@ -45,7 +45,7 @@
     const r = HT.route;
     renderedDay = HT.today();
     HT.$('#view').innerHTML = HT.views[r.name](r.arg);
-    const tab = r.name === 'tracker' ? 'trackers' : r.name === 'fgoal' ? 'finance' : r.name === 'weight' || r.name === 'nutrition' ? 'health' : r.name;
+    const tab = r.name === 'tracker' ? 'trackers' : r.name === 'fgoal' ? 'finance' : r.name === 'weight' || r.name === 'nutrition' || r.name === 'strength' ? 'health' : r.name;
     HT.$$('#nav a').forEach((a) => {
       if (a.dataset.tab === tab) a.setAttribute('aria-current', 'page');
       else a.removeAttribute('aria-current');

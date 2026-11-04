@@ -71,8 +71,15 @@
   const normSets = (sets) => arr(sets).filter((s) => s && typeof s === 'object').slice(0, 50)
     .map((s) => ({ reps: pos(s.reps) != null ? Math.round(pos(s.reps)) : null, kg: pos(s.kg) }))
     .filter((s) => s.reps != null || s.kg != null);
+  // exId links an entry to the Strength exercise list (strength.js); notes are per-exercise notes.
   const normExercises = (ex) => arr(ex).filter((e) => e && str(e.name, 60).trim()).slice(0, 40)
-    .map((e) => ({ name: str(e.name, 60).trim(), sets: normSets(e.sets) }));
+    .map((e) => {
+      const o = { name: str(e.name, 60).trim(), sets: normSets(e.sets) };
+      if (typeof e.exId === 'string' && e.exId) o.exId = str(e.exId, 40);
+      const n = str(e.notes, 300).trim();
+      if (n) o.notes = n;
+      return o;
+    });
   const normSchedule = (s) => {
     const x = obj(s);
     return {
@@ -151,7 +158,7 @@
     WIDGETS.forEach((w) => { if (!widgets.some((x) => x.id === w[0])) widgets.push({ id: w[0], on: true }); });
 
     const s = obj(r.settings);
-    return {
+    const out = {
       metrics, daily, workouts, templates, items, routines, intake, widgets,
       categories: cats.length ? cats : DEFAULT_CATS.slice(),
       settings: {
@@ -164,6 +171,8 @@
         workoutHabit: typeof s.workoutHabit === 'string' && s.workoutHabit ? s.workoutHabit : null,
       },
     };
+    // The strength exercise list is owned by strength.js; keep it untouched if that module isn't loaded.
+    return HT.strength ? HT.strength.normalize(out, r) : Object.assign(out, { exercises: arr(r.exercises) });
   };
 
   /* ---------- units ---------- */
@@ -261,6 +270,7 @@
     const t = D().settings.workoutHabit && HT.tracker(D().settings.workoutHabit);
     if (t && t.status === 'active' && HT.typeOf(t).mode === 'toggle' && !HT.isDone(t, date)) HT.setValue(t, date, 1);
   };
+  H.linkWorkoutHabit = linkWorkoutHabit;
 
   /* ---------- supplements ---------- */
 
@@ -344,9 +354,10 @@
   /* ---------- shared UI pieces ---------- */
 
   H.vs = { day: null, suppDay: null, period: '3M', status: 'tobuy', category: '', priority: '', sort: 'priority', allWorkouts: false };
-  const TABS = [['', 'Overview'], ['weight', 'Weight'], ['nutrition', 'Nutrition'], ['daily', 'Daily'], ['workouts', 'Workouts'], ['supplements', 'Supplements'], ['shopping', 'Shopping']];
+  const TABS = [['', 'Overview'], ['weight', 'Weight'], ['nutrition', 'Nutrition'], ['strength', 'Strength'], ['daily', 'Daily'], ['workouts', 'Workouts'], ['supplements', 'Supplements'], ['shopping', 'Shopping']];
+  const OWN_ROUTE = ['weight', 'nutrition', 'strength'];
   H.subnav = (cur) => '<nav class="hsub" aria-label="Health sections">' + TABS.map((t) => {
-    const href = t[0] === 'weight' ? '#/weight' : t[0] === 'nutrition' ? '#/nutrition' : '#/health' + (t[0] ? '/' + t[0] : '');
+    const href = OWN_ROUTE.includes(t[0]) ? '#/' + t[0] : '#/health' + (t[0] ? '/' + t[0] : '');
     return '<a href="' + href + '"' + (t[0] === cur ? ' aria-current="page"' : '') + '>' + t[1] + '</a>';
   }).join('') + '</nav>';
   H.head = (title, right) => '<header class="page-head"><div><div class="eyebrow">Health</div><h1>' + title + '</h1></div>' + (right || '') + '</header>';
@@ -617,10 +628,16 @@
         '<button type="button" class="icon-btn sm" data-set-rm="' + i + '-' + j + '" aria-label="Remove set">' + icon.minus + '</button>').join('') +
       '</div><button type="button" class="btn btn-sm" data-set-add="' + i + '">' + icon.plus + '<span>Add set</span></button></div>').join('');
     const readEx = (wrap) => {
-      state.exercises = state.exercises.map((ex, i) => ({
-        name: val(wrap, '[data-exname="' + i + '"]'),
-        sets: ex.sets.map((s, j) => ({ reps: pos(val(wrap, '[data-reps="' + i + '-' + j + '"]')), kg: (() => { const v = pos(val(wrap, '[data-kg="' + i + '-' + j + '"]')); return v != null ? liftIn(v) : null; })() })),
-      }));
+      state.exercises = state.exercises.map((ex, i) => {
+        const o = {
+          name: val(wrap, '[data-exname="' + i + '"]'),
+          sets: ex.sets.map((s, j) => ({ reps: pos(val(wrap, '[data-reps="' + i + '-' + j + '"]')), kg: (() => { const v = pos(val(wrap, '[data-kg="' + i + '-' + j + '"]')); return v != null ? liftIn(v) : null; })() })),
+        };
+        // Keep the Strength link and notes unless the exercise was renamed here (then it re-links by name).
+        if (ex.exId && o.name.toLowerCase() === String(ex.name || '').trim().toLowerCase()) o.exId = ex.exId;
+        if (ex.notes) o.notes = ex.notes;
+        return o;
+      });
     };
     const base = existing && !isTemplate ? existing : src || {};
     const dateVal = existing && !isTemplate ? existing.date : date || HT.today();
