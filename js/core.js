@@ -5,7 +5,7 @@
 
   const HT = (window.HT = {});
   const STORAGE_KEY = 'habits.data';
-  HT.VERSION = 7; // 1 = habits only, 2 = + finance, 3 = + weight, 4 = + health & fitness, 5 = + nutrition, 6 = + strength exercises, 7 = + vitamins & minerals
+  HT.VERSION = 8; // 1 = habits only, 2 = + finance, 3 = + weight, 4 = + health & fitness, 5 = + nutrition, 6 = + strength exercises, 7 = + vitamins & minerals, 8 = + schedule (events & tasks)
 
   /* ---------- dates (always local time, keyed as YYYY-MM-DD) ---------- */
 
@@ -145,6 +145,7 @@
       weight: HT.normalizeWeight ? HT.normalizeWeight(null) : null, // shape lives in weight.js
       health: HT.normalizeHealth ? HT.normalizeHealth(null) : null, // shape lives in health.js
       nutrition: HT.normalizeNutrition ? HT.normalizeNutrition(null) : null, // shape lives in nutrition.js
+      schedule: HT.normalizeSchedule ? HT.normalizeSchedule(null) : null, // shape lives in schedule.js
       meta: { lastBackup: null, notified: {} },
     };
   }
@@ -203,6 +204,8 @@
       if (n && n.targets && n.targets.sodium != null) { n.limits = Object.assign({ sodium: n.targets.sodium }, n.limits || {}); delete n.targets.sodium; }
       data.version = 7;
     },
+    // Adds the empty schedule (calendar events and tasks). Nothing existing changes.
+    7: (data) => { data.schedule = data.schedule || null; data.version = 8; },
   };
   HT.migrate = (input) => {
     if (!input || typeof input !== 'object' || !Array.isArray(input.trackers)) {
@@ -242,6 +245,7 @@
     out.weight = HT.normalizeWeight(data.weight);
     out.health = HT.normalizeHealth(data.health);
     out.nutrition = HT.normalizeNutrition(data.nutrition);
+    out.schedule = HT.normalizeSchedule ? HT.normalizeSchedule(data.schedule) : data.schedule || null;
     const m = data.meta && typeof data.meta === 'object' ? data.meta : {};
     out.meta = { lastBackup: m.lastBackup || null, notified: m.notified && typeof m.notified === 'object' ? m.notified : {} };
     return out;
@@ -268,6 +272,7 @@
     if (!HT.data.weight) HT.data.weight = HT.normalizeWeight(null);
     if (!HT.data.health) HT.data.health = HT.normalizeHealth(null);
     if (!HT.data.nutrition) HT.data.nutrition = HT.normalizeNutrition(null);
+    if (!HT.data.schedule && HT.normalizeSchedule) HT.data.schedule = HT.normalizeSchedule(null);
   };
   HT.save = () => {
     try {
@@ -291,6 +296,7 @@
     weight: HT.data.weight,
     health: HT.data.health,
     nutrition: HT.data.nutrition,
+    schedule: HT.data.schedule,
   });
   HT.importData = (obj) => {
     const next = HT.migrate(obj); // throws before anything is replaced

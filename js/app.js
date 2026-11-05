@@ -3,15 +3,19 @@
   'use strict';
   const HT = window.HT;
 
+  /* Four primary tabs. Every older address (#/today, #/health, #/trackers, #/history, #/settings…) still
+     opens its screen; TAB_OF says which tab it belongs to. */
   const TABS = [
-    ['today', 'Today'],
-    ['health', 'Health'],
+    ['home', 'Home'],
+    ['schedule', 'Schedule'],
     ['finance', 'Finance'],
-    ['history', 'History'],
-    ['stats', 'Stats'],
-    ['trackers', 'Trackers'],
-    ['settings', 'Settings'],
+    ['more', 'More'],
   ];
+  const TAB_OF = {
+    home: 'home', today: 'home', habits: 'home', trackers: 'home', stats: 'home', tracker: 'home', health: 'home', weight: 'home', nutrition: 'home', strength: 'home',
+    schedule: 'schedule', history: 'schedule', finance: 'finance', fgoal: 'finance', more: 'more', settings: 'more',
+  };
+  HT.tabOf = (r) => (r.name === 'health' && r.arg === 'shopping' ? 'more' : TAB_OF[r.name] || 'home');
 
   /* ---------- theme ---------- */
   HT.applyTheme = () => {
@@ -32,23 +36,33 @@
   }
 
   /* ---------- routing ---------- */
-  HT.route = { name: 'today', arg: null };
+  HT.route = { name: 'home', arg: null };
   let renderedDay = null;
 
   function parseHash() {
     const parts = location.hash.replace(/^#\/?/, '').split('/');
-    const name = HT.views[parts[0]] ? parts[0] : 'today';
+    const name = HT.views[parts[0]] ? parts[0] : 'home';
     return { name, arg: parts[1] ? decodeURIComponent(parts[1]) : null };
   }
 
   HT.render = () => {
     const r = HT.route;
     renderedDay = HT.today();
-    HT.$('#view').innerHTML = HT.views[r.name](r.arg);
-    const tab = r.name === 'tracker' ? 'trackers' : r.name === 'fgoal' ? 'finance' : r.name === 'weight' || r.name === 'nutrition' || r.name === 'strength' ? 'health' : r.name;
-    HT.$$('#nav a').forEach((a) => {
+    const view = HT.$('#view');
+    view.innerHTML = HT.views[r.name](r.arg);
+    const tab = HT.tabOf(r);
+    // Dashboards use the extra width on large screens; other pages keep a readable column.
+    view.classList.toggle('wide', (r.name === 'home' || r.name === 'today' || r.name === 'schedule' || r.name === 'history' || r.name === 'more') && !r.arg || r.name === 'schedule');
+    HT.$$('#nav a[data-tab]').forEach((a) => {
       if (a.dataset.tab === tab) a.setAttribute('aria-current', 'page');
       else a.removeAttribute('aria-current');
+    });
+    // Desktop sidebar: Home's sections under the Home tab.
+    const here = location.hash || '#/home';
+    HT.$$('#nav a[data-sub]').forEach((a) => {
+      const href = a.getAttribute('href');
+      const on = href === '#/home' ? (r.name === 'home' || r.name === 'today') : here === href || here.indexOf(href + '/') === 0;
+      if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
   };
 
@@ -63,8 +77,10 @@
   }
 
   function buildNav() {
+    const subs = HT.home ? HT.home.SECTIONS.filter((x) => x[0] !== 'home') : [];
     HT.$('#nav').innerHTML = '<div class="brand"><span class="brand-mark">' + HT.icon.today + '</span>Habits</div>' +
-      TABS.map((t) => '<a href="#/' + t[0] + '" data-tab="' + t[0] + '">' + HT.icon[t[0]] + '<span>' + t[1] + '</span></a>').join('');
+      TABS.map((t) => '<a href="#/' + t[0] + '" data-tab="' + t[0] + '">' + HT.icon[t[0]] + '<span>' + t[1] + '</span></a>' +
+        (t[0] === 'home' && subs.length ? '<div class="nav-sub">' + subs.map((x) => '<a href="' + x[2] + '" data-sub="' + x[0] + '">' + x[1] + '</a>').join('') + '</div>' : '')).join('');
   }
 
   /* ---------- events ---------- */

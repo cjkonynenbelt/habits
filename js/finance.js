@@ -480,7 +480,7 @@
       html: field('Planned monthly income', moneyInput('b-income', b.income)) +
         '<div class="field"><span class="label">Monthly limit per category <em>leave blank to skip</em></span>' +
         cats.map((c, i) => '<div class="inline-row"><span>' + esc(c) + '</span><input type="number" inputmode="decimal" min="0" step="any" placeholder="—" data-cat="' + i + '" value="' + (b.categories[c] || '') + '"></div>').join('') +
-        '</div><p class="hint">Add or remove categories in Settings → Finance.</p>',
+        '</div><p class="hint">Add or remove categories in More → Finance settings.</p>',
       onSave: (wrap) => {
         b.income = r2(pos(val(wrap, '#b-income')));
         b.categories = {};

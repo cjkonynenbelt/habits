@@ -1,6 +1,7 @@
-# Habits — daily habit tracker + personal finance
+# Habits — habits, health, schedule and money in one app
 
-A private, installable web app for tracking daily habits and personal finance goals.
+A private, installable personal management app: habits, health and fitness, a calendar with tasks, and
+personal finance.
 It is a plain static site (HTML, CSS, JavaScript — no build step, no server, no account), made to be
 hosted for free on GitHub Pages and used mainly from a phone.
 
@@ -9,22 +10,45 @@ outside services are optional Nutrition features: barcode lookups and product se
 (only the barcode or search words are sent), meal-photo recognition on LogMeal (only if you add your own
 token), and two libraries downloaded from jsDelivr the first time you scan a barcode or a label.
 
+## How it's organised
+
+Four tabs at the bottom (a sidebar on desktop):
+
+| Tab | What's there |
+| --- | --- |
+| **Home** | Today's dashboard — greeting, daily completion ring, calories / water / workouts / tasks, agenda (priorities and what's next), habits, health and recent activity. A section bar opens **Habits**, **Nutrition**, **Workouts**, **Strength**, **Weight**, **Daily log**, **Supplements** and **Insights** (the health overview). **Log** at the top adds food, water, a workout, a lift, a weigh-in, supplements, a task, an event, a habit or a transaction. |
+| **Schedule** | **Calendar** (month / week / day, add and edit events and tasks), **Timeline** (everything you logged, by day / week / month, filterable by category) and **History** (habit calendar with every day's log and links to each full history). |
+| **Finance** | Overview, goals, income, expenses, budget, net worth and activity — money only. |
+| **More** | Profile and nutrition targets, account and storage, Home dashboard, appearance, notifications, habit and health preferences, finance settings, all habits, archived and paused items, supplement routine, health shopping list, foods and recipes, backup / export / import, install, help and about. |
+
+Older links (#/today, #/health, #/trackers, #/stats, #/history, #/settings) still open their screens.
+
 ## What's in it
 
-**Habits**
+**Habits** (Home → Habits)
 
-- **Today** — date, completion ring, and every tracker due today with one-tap logging
+- **Home** — every habit due today with one-tap logging, under the daily overview
 - **Seven tracker types** — Yes/No, Number, Quantity, Duration, Time, Counter, Percentage
 - **Custom everything** — name, description, icon, colour, goal, unit (or your own), schedule,
   start date, reminder, and whether it counts toward the daily %
 - **Schedules** — every day, weekdays, weekends, specific days, or every N days
 - **Streaks** — current, best, total completions, completion rate (off days never break a streak)
-- **History** — monthly calendar; tap any day to see or correct what was recorded
-- **Stats** — this week / this month overview, plus a detail page per tracker
+- **History** — Schedule → History: monthly calendar; tap any day to see or correct what was recorded
+- **Progress** — this week / this month overview, plus a detail page per habit; **Manage** lists all habits
 - **Reorder** — press and hold a tracker, then drag
 - **Pause / archive / delete** — archived trackers keep their history
 
-**Finance** (a separate section)
+**Schedule** (its own tab)
+
+- **Events and tasks** — title, date, all day or start / end time, priority flag, notes. Tasks can be ticked off.
+- **Home agenda** — today's priorities (flagged items and today's tasks, then overdue tasks) and what's coming up.
+- **Calendar** — month grid with event and task dots (habit-complete days in green), week list, day agenda plus
+  what you logged that day.
+- **Timeline** — habits, completed tasks and past events, workouts, meals (one row per meal), weigh-ins,
+  supplements taken, daily-log values and money, newest first. Tap a row to open it on that day. It reads
+  the existing logs; nothing is copied.
+
+**Finance** (its own tab)
 
 - **Overview** — net worth, this month's income / expenses / saved, savings rate
 - **Savings goals and debt payoff** — progress, remaining, required monthly amount, estimated finish date
@@ -34,7 +58,7 @@ token), and two libraries downloaded from jsDelivr the first time you scan a bar
 - **Activity** — everything in one list, filtered by week, month, year or a custom range
 - **Optional habit link** — a habit such as "Save $20" can offer to add that amount to a goal
 
-**Health & fitness** (the Health tab — second in the bottom bar: Overview · Nutrition · Weight · Strength · Daily · Workouts · Supplements · Shopping)
+**Health & fitness** (Home → Nutrition, Workouts, Strength, Weight, Daily log, Supplements, Insights; the shopping list is under More)
 
 - **Weight** — quick weigh-in from Today; date, time and an optional note; several weigh-ins a day are kept
   and averaged for that day. Graph for 1W / 1M / 3M / 6M / 1Y / All with a 7-day average line, tap-to-read
@@ -69,10 +93,10 @@ token), and two libraries downloaded from jsDelivr the first time you scan a bar
   marking an item purchased can optionally add a Finance expense.
 - **Overview** — weight change and average, workout frequency and time, daily averages, chosen health habits,
   supplement logging and health spending for 1M / 3M / 6M / 1Y, shown only when there is enough data.
-- **Today screen widgets** — habits, weight, health metrics, workout, supplement checklist and health purchases;
-  choose and reorder them in Settings → Today screen.
+- **Home sections** — agenda, habits, weight, health metrics, workout, supplement checklist, health purchases,
+  nutrition and recent activity; choose and reorder them in More → Home dashboard.
 
-**Nutrition** (Health → Nutrition)
+**Nutrition** (Home → Nutrition)
 
 - **Diary** — breakfast, lunch, dinner, snacks and your own meal categories; each entry shows serving, calories,
   protein, carbohydrate and fat. Edit, delete, duplicate, move between meals, log past days.
@@ -92,7 +116,7 @@ token), and two libraries downloaded from jsDelivr the first time you scan a bar
   and a week-by-week table next to weight change and workouts.
 - Health's "Calories" and "Protein" metrics read the food diary on days you log food, so nothing is entered twice.
 
-**Vitamins & minerals** (Health → Nutrition → Vitamins)
+**Vitamins & minerals** (Home → Nutrition → Vitamins)
 
 - **28 nutrients** — vitamins A, C, D, E, K (K1 and K2 when listed), B1, B2, B3, B5, B6, B7, B9, B12, choline;
   calcium, magnesium, zinc, iron, potassium, sodium, phosphorus, selenium, copper, manganese, iodine, chromium,
@@ -112,7 +136,7 @@ token), and two libraries downloaded from jsDelivr the first time you scan a bar
 - **History** — 7D / 30D / 90D / 1Y / custom dates, daily / weekly / monthly averages, a chart per nutrient with
   target and limit lines, often-short and often-over lists, and a period table. Days with nothing logged are left out.
 
-**Nutrition targets** (Nutrition → Settings → Open nutrition targets, or the Targets link)
+**Nutrition targets** (More → Nutrition targets, or Nutrition → Settings)
 
 - **Profile** — sex, age (or birth date), height (ft/in or cm), activity level and goal; body weight comes from the
   Weight log.
@@ -144,13 +168,16 @@ habit-tracker/
 ├── js/
 │   ├── core.js             Data: storage, tracker types, schedules, streaks, stats
 │   ├── ui.js               Helpers: icons, sheets/dialogs, toasts, drag-to-reorder
-│   ├── views.js            Habit screens and the tracker form
+│   ├── views.js            Home dashboard, habit screens and form, History, Settings sections
 │   ├── finance.js          The whole Finance section (data, maths, screens)
 │   ├── weight.js           Body weight (data, maths, screen, graph, Today widget)
 │   ├── health.js           Health & fitness: daily metrics, workouts, supplements, shopping, overview, widgets
 │   ├── nutrition.js        Food diary, Open Food Facts, barcode / label / meal-photo scanning, recipes, trends
 │   ├── strength.js         Strength training: exercise list, set logging, progress charts, records, history
 │   ├── micros.js           Vitamins & minerals: daily totals from food + supplements, targets, profile, alerts, history
+│   ├── schedule.js         Schedule: events and tasks, calendar, activity timeline, Home agenda
+│   ├── home.js             Home: section bar, daily overview figures, quick "Log" sheet
+│   ├── more.js             More: menu, archived items, account & storage, help, about
 │   └── app.js              Routing, navigation, theme, reminders, startup
 ├── icons/                  App icons (192, 512, maskable, Apple touch)
 ├── tests/                  Node tests for the data logic (no dependencies)
@@ -218,19 +245,20 @@ No other deployment configuration is needed.
 
 > **Install first, then add your trackers.** On iPhone the home-screen app keeps its own storage,
 > separate from Safari. Anything you create in the Safari tab will not appear in the installed app
-> (use Settings → Export in Safari and Import in the app to move it across).
+> (use More → Backup, export & import in Safari, then Import in the app to move it across).
 
 ## Using the app
 
-- **Add a tracker** — tap **Add Tracker**, pick a type, set a goal, save. The "Quick start" chips
-  fill in common ones.
+- **Add a habit** — on Home tap **Add habit** (or **Log → New habit**), pick a type, set a goal, save. The
+  "Quick start" chips fill in common ones.
 - **Log** — tap the circle (Yes/No), **+ / −** (Counter), the **+amount** button (Quantity, Duration),
   or **Log** to type a value. The pencil lets you type an exact amount or set the total.
-- **Details** — tap a tracker's name for streaks, charts and its calendar. Tap any past day there to fix it.
-- **Reorder** — press and hold a tracker for about half a second, then drag.
+- **Details** — tap a habit's name for streaks, charts and its calendar. Tap any past day there to fix it.
+- **Reorder** — press and hold a habit for about half a second, then drag. Home sections are reordered in More → Home dashboard.
+- **Plan** — Schedule → **Add** for an event or task; flag it as a priority to see it at the top of Home.
 - **Finance** — add goals with **Add Financial Goal**, record money with **Income** / **Expense**,
   and list what you own and owe under **Net worth**.
-- **Back up** — Settings → **Back up** (or **Export**) saves a `habits-backup-DATE.json` file.
+- **Back up** — More → **Backup, export & import** saves a `habits-backup-DATE.json` file.
   **Import** restores it. Do this now and then, and always before clearing browser data or changing phones.
 
 ## Setting up meal-photo recognition (optional)
@@ -238,7 +266,7 @@ No other deployment configuration is needed.
 1. Create an account at <https://logmeal.com/api> (30-day free trial with all features, then a paid plan).
 2. In LogMeal, get an **APIUser** token — their docs say image recognition only works with APIUser tokens, and
    nutrition values need the trial or their Monitor plan or higher.
-3. In Habits: Health → Nutrition → Settings → paste it into "LogMeal API token" and save.
+3. In Habits: Home → Nutrition → Settings → paste it into "LogMeal API token" and save.
 
 The token is stored only on that device, sent only to LogMeal with a meal photo, and never put in backups —
 so add it again on each device. Because there is no server, the token lives in your browser rather than on a
@@ -274,7 +302,7 @@ server; anyone with access to your unlocked phone could read it, so use a token 
 ## Updating the app later
 
 Upload the changed files to the repository (or `git push`). Also change the version on the first line of
-code in `sw.js` (currently `const CACHE = 'habits-v6'` → next `'habits-v7'`, and so on) so phones fetch the new files. Open the app
+code in `sw.js` (currently `const CACHE = 'habits-v7'` → next `'habits-v8'`, and so on) so phones fetch the new files. Open the app
 twice after updating: the first open downloads the update, the second one shows it. Your data is not affected.
 
 ## Data format
@@ -283,10 +311,12 @@ One JSON object, saved in the browser's `localStorage` under `habits.data` and u
 
 ```json
 {
-  "version": 7,
+  "version": 8,
   "trackers": [],
   "entries": { "2026-10-01": { "trackerId": 3 } },
   "settings": {},
+  "schedule": { "events": [{ "id": "ev…", "title": "Dentist", "kind": "event", "date": "2026-11-06", "time": "10:30", "end": "11:15",
+                "priority": false, "done": false, "doneAt": null, "notes": "" }] },
   "finance": { "currency": "CAD", "goals": [], "transactions": [], "recurring": [],
                "budget": {}, "accounts": [], "netWorthHistory": [], "categories": {} },
   "weight": { "unit": "lb", "goal": null, "start": null, "reminder": {},
@@ -302,7 +332,8 @@ One JSON object, saved in the browser's `localStorage` under `habits.data` and u
 `version` lets future releases migrate older data (see `MIGRATIONS` in `js/core.js`; version 1 backups,
 from before Finance existed, still import; version 3 → 4 only adds the empty `health` section; 5 → 6 builds
 the strength exercise list from lifts already in the workout log; 6 → 7 moves an old sodium "target", which was
-always a limit, to `nutrition.limits.sodium`). `nutrition` also holds `profile`, custom `targets` / `limits`
+always a limit, to `nutrition.limits.sodium`; 7 → 8 only adds the empty `schedule` section, and Home's two new
+sections, Agenda and Recent activity, are added to `health.widgets` without changing a saved order). `nutrition` also holds `profile`, custom `targets` / `limits`
 and `useCustom`. Vitamins and minerals are stored per food in the units listed in `N.NUTRIENTS` (vitamin A µg RAE,
 folate µg DFE). A strength session is an entry in
 `health.workouts[].exercises` with `exId` pointing at `health.exercises`, its `sets` (`reps`, `kg`) and optional `notes`.

@@ -18,12 +18,12 @@ function fresh() {
 }
 const sets = (...rows) => rows.flatMap(([kg, reps, n = 1]) => Array.from({ length: n }, () => ({ kg, reps })));
 
-test('Health is the second tab in the bottom navigation and every destination is kept', () => {
+test('the bottom navigation has four tabs and Strength belongs to Home', () => {
   const src = readFileSync(new URL('../js/app.js', import.meta.url), 'utf8');
   const block = src.slice(src.indexOf('const TABS = ['), src.indexOf('];', src.indexOf('const TABS = [')));
   const ids = [...block.matchAll(/\['(\w+)', '[^']+'\]/g)].map((m) => m[1]);
-  assert.deepEqual(ids, ['today', 'health', 'finance', 'history', 'stats', 'trackers', 'settings']);
-  assert.ok(src.includes("r.name === 'strength' ? 'health'"), 'Strength pages highlight the Health tab');
+  assert.deepEqual(ids, ['home', 'schedule', 'finance', 'more']);
+  assert.ok(/strength: 'home'/.test(src), 'Strength pages highlight the Home tab');
 });
 
 test('v5 data upgrades to v6: lifts logged by name get exercises, nothing else changes', () => {

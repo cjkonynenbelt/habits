@@ -44,7 +44,7 @@ test('saved data in the browser is upgraded on load and kept', () => {
   assert.equal(HT.data.version, HT.VERSION);
   assert.equal(HT.data.trackers[0].name, 'Stretch');
   assert.equal(HT.data.weight.entries[0].kg, 80);
-  assert.ok(HT.data.health.widgets.length === 7);
+  assert.equal(HT.data.health.widgets.length, 9, 'every Home section is present, including Agenda and Recent activity');
 });
 
 test('weight goal maths: losing, gaining and the example from the brief', () => {
@@ -258,9 +258,11 @@ test('health data is cleaned on load: bad values and orphan references are dropp
   assert.equal(h.items[0].estPrice, null);
   assert.equal(h.routines[0].itemId, null);
   assert.deepEqual(json(h.intake), {});
-  assert.equal(h.widgets[0].id, 'shopping');
-  assert.equal(h.widgets[0].on, false);
-  assert.equal(h.widgets.length, 7);
+  // The stored choice survives; new sections are added around it (Agenda first, Recent activity last).
+  assert.equal(h.widgets.find((w) => w.id === 'shopping').on, false);
+  assert.deepEqual(json(h.widgets.slice(0, 2).map((w) => w.id)), ['agenda', 'shopping']);
+  assert.equal(h.widgets[h.widgets.length - 1].id, 'recent');
+  assert.equal(h.widgets.length, 9);
 });
 
 test('export then import keeps every section, including health', () => {
@@ -283,7 +285,7 @@ test('drag-reordering Today widgets and metrics is saved', () => {
   const { HT } = loadApp();
   const H = HT.health;
   assert.equal(H.reorder('widgets', ['weight', 'habits']), true);
-  assert.deepEqual(json(HT.data.health.widgets.slice(0, 3).map((w) => w.id)), ['weight', 'habits', 'metrics']);
+  assert.deepEqual(json(HT.data.health.widgets.slice(0, 3).map((w) => w.id)), ['weight', 'habits', 'agenda']);
   H.reorder('metrics', ['m_steps', 'm_water']);
   assert.deepEqual(json(H.metrics().slice(0, 2).map((m) => m.id)), ['m_steps', 'm_water']);
   assert.equal(H.reorder('something-else', []), false);

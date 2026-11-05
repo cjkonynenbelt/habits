@@ -1248,7 +1248,7 @@
     if (p.hit.kcal != null) hits.push('<div class="frow"><span>Calories within 10% of target</span><b>' + p.hit.kcal + ' of ' + plural(p.days, 'logged day') + '</b></div>');
     if (p.hit.protein != null) hits.push('<div class="frow"><span>Protein target reached</span><b>' + p.hit.protein + ' of ' + plural(p.days, 'logged day') + '</b></div>');
     ['fibre', 'sugar', 'sodium'].forEach((k) => { if (p.avg[k] != null) hits.push('<div class="frow"><span>Avg ' + nutr(k)[1].toLowerCase() + '</span><b>' + fmtN(k, p.avg[k]) + '</b></div>'); });
-    html += '<section class="panel-card"><h3>Targets</h3>' + (hits.length ? hits.join('') : '') + (t.kcal || t.protein ? '' : '<p class="muted">Set calorie and protein targets in Settings to see how often you reach them.</p>') + '</section>';
+    html += '<section class="panel-card"><h3>Targets</h3>' + (hits.length ? hits.join('') : '') + (t.kcal || t.protein ? '' : '<p class="muted">Set your profile or targets in Nutrition targets to see how often you reach them.</p>') + '</section>';
 
     // daily calories chart
     const logged = {};

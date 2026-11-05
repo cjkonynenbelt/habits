@@ -39,7 +39,7 @@
   ];
   const KINDS = ['weight', 'workout', 'water', 'duration', 'count', 'quantity', 'boolean'];
   const CUSTOM_KINDS = [['quantity', 'Amount that adds up (e.g. g, cups)'], ['count', 'Single number (e.g. kcal, resting HR)'], ['duration', 'Hours and minutes'], ['boolean', 'Yes / no']];
-  const WIDGETS = [['habits', 'Today\'s habits'], ['weight', 'Body weight'], ['metrics', 'Health metrics and targets'], ['workout', 'Workout'], ['supplements', 'Supplement checklist'], ['shopping', 'Health purchases'], ['nutrition', 'Nutrition']];
+  const WIDGETS = [['agenda', 'Agenda: priorities and coming up'], ['habits', 'Today\'s habits'], ['weight', 'Body weight'], ['metrics', 'Health metrics and targets'], ['workout', 'Workout'], ['supplements', 'Supplement checklist'], ['shopping', 'Health purchases'], ['nutrition', 'Nutrition'], ['recent', 'Recent activity']];
   const ITEM_STATUS = [['research', 'Need to research'], ['want', 'Want to buy'], ['restock', 'Need to restock'], ['purchased', 'Purchased'], ['dropped', 'Not buying anymore']];
   const TO_BUY = ['research', 'want', 'restock'];
   const PRIORITY = [['high', 'High'], ['medium', 'Medium'], ['low', 'Low']];
@@ -161,7 +161,8 @@
 
     const storedW = arr(r.widgets).filter((w) => w && WIDGETS.some((x) => x[0] === w.id));
     const widgets = storedW.map((w) => ({ id: w.id, on: w.on !== false }));
-    WIDGETS.forEach((w) => { if (!widgets.some((x) => x.id === w[0])) widgets.push({ id: w[0], on: true }); });
+    // Missing sections are added without disturbing a saved order: Agenda goes on top, anything else at the end.
+    WIDGETS.forEach((w) => { if (!widgets.some((x) => x.id === w[0])) { if (w[0] === 'agenda') widgets.unshift({ id: w[0], on: true }); else widgets.push({ id: w[0], on: true }); } });
 
     const s = obj(r.settings);
     const out = {
@@ -363,11 +364,11 @@
   H.vs = { day: null, suppDay: null, period: '3M', status: 'tobuy', category: '', priority: '', sort: 'priority', allWorkouts: false };
   const TABS = [['', 'Overview'], ['nutrition', 'Nutrition'], ['weight', 'Weight'], ['strength', 'Strength'], ['daily', 'Daily'], ['workouts', 'Workouts'], ['supplements', 'Supplements'], ['shopping', 'Shopping']];
   const OWN_ROUTE = ['weight', 'nutrition', 'strength'];
-  H.subnav = (cur) => '<nav class="hsub" aria-label="Health sections">' + TABS.map((t) => {
+  H.subnav = (cur) => (HT.homeNav ? HT.homeNav(cur === '' ? 'health' : cur) : '<nav class="hsub" aria-label="Health sections">' + TABS.map((t) => {
     const href = OWN_ROUTE.includes(t[0]) ? '#/' + t[0] : '#/health' + (t[0] ? '/' + t[0] : '');
     return '<a href="' + href + '"' + (t[0] === cur ? ' aria-current="page"' : '') + '>' + t[1] + '</a>';
-  }).join('') + '</nav>';
-  H.head = (title, right) => '<header class="page-head"><div><div class="eyebrow">Health</div><h1>' + title + '</h1></div>' + (right || '') + '</header>';
+  }).join('') + '</nav>');
+  H.head = (title, right) => '<header class="page-head"><div><div class="eyebrow">Home · Health & fitness</div><h1>' + title + '</h1></div>' + (right || '') + '</header>';
 
   const opt = (v, l, cur) => '<option value="' + esc(v) + '"' + (String(v) === String(cur) ? ' selected' : '') + '>' + esc(l) + '</option>';
   const select = (id, options, cur, extra) => '<select id="' + id + '"' + (extra || '') + '>' + options.map((o) => opt(o[0], o[1], cur)).join('') + '</select>';
@@ -733,6 +734,9 @@
 
   const workoutLine = (w) => [w.duration ? HT.dur(w.duration) : '', w.distance ? fmtDist(w.distance) : '', w.exercises.length ? plural(w.exercises.length, 'exercise') : ''].filter(Boolean).join(' · ') || 'Logged';
   const workoutTitle = (w) => w.name || wtype(w.type)[1];
+  H.workoutTitle = workoutTitle;
+  H.workoutLine = workoutLine;
+  H.wtypeIcon = (id) => wtype(id)[2];
 
   function workouts() {
     const today = HT.today();
@@ -977,7 +981,7 @@
       tile(c.spent ? money(c.spent) : '—', 'Spent') + '</div>' + (c.recurring ? '<p class="muted gap-bottom">Recurring costs: about ' + money(c.recurring) + ' / month</p>' : '');
     const low = D().items.filter(H.isLow);
     if (low.length) html += '<section class="panel-card warn"><h3>Running low</h3><ul class="ilist">' + low.map(itemRow).join('') + '</ul>' +
-      '<p class="hint">Low when on-hand is at or under its threshold, or under ' + plural(D().settings.lowDays, 'day') + ' of supply (change in Settings).</p></section>';
+      '<p class="hint">Low when on-hand is at or under its threshold, or under ' + plural(D().settings.lowDays, 'day') + ' of supply (change in More → Health & units).</p></section>';
     const cats = Array.from(new Set(D().categories.concat(D().items.map((i) => i.category))));
     html += '<div class="filters">' + select('if-status', [['tobuy', 'Still to buy'], ['all', 'All items']].concat(ITEM_STATUS), v.status, ' aria-label="Status"') +
       select('if-cat', [['', 'All categories']].concat(cats.map((x) => [x, x])), v.category, ' aria-label="Category"') +
@@ -1215,7 +1219,7 @@
   HT.actions['h-period'] = (el) => { H.vs.period = el.dataset.v; HT.render(); };
   HT.actions['h-pick-habits'] = () => {
     const habits = HT.sorted().filter((t) => t.status !== 'archived');
-    if (!habits.length) { HT.toast('Add a habit on the Today screen first'); return; }
+    if (!habits.length) { HT.toast('Add a habit on Home first'); return; }
     const sel = new Set(D().settings.healthHabits);
     formSheet({
       title: 'Health habits',
@@ -1272,13 +1276,14 @@
 
   /* ---------- Settings ---------- */
 
-  H.settingsHTML = () => {
+  H.widgetSettingsHTML = () => '<h2 class="section-title first">Home sections</h2><section class="panel-card"><p class="hint gap-bottom">Choose what appears on Home, below the daily overview. Press and hold to reorder. Sections with nothing to show stay hidden.</p>' +
+      '<ul class="tlist wlist" data-sortable="widgets">' + D().widgets.map((w) => '<li class="trow" data-id="' + w.id + '"><div class="wrow"><span class="grip" aria-hidden="true">⋮⋮</span><span class="tname">' + esc(label(WIDGETS, w.id)) + '</span>' +
+        '<label class="switch" data-nodrag><input type="checkbox" data-widget-on="' + w.id + '"' + (w.on ? ' checked' : '') + ' aria-label="Show ' + esc(label(WIDGETS, w.id)) + '"><span></span></label></div></li>').join('') + '</ul></section>';
+  H.settingsHTML = () => H.widgetSettingsHTML() + H.unitSettingsHTML();
+  H.unitSettingsHTML = () => {
     const s = D().settings;
     const seg = (name, options, cur) => '<div class="segmented" data-hsetting="' + name + '">' + options.map((o) => '<button type="button" data-action="h-setting" data-v="' + o[0] + '" aria-pressed="' + (o[0] === cur) + '">' + o[1] + '</button>').join('') + '</div>';
-    return '<h2 class="section-title">Today screen</h2><section class="panel-card"><p class="hint gap-bottom">Choose what appears on Today. Press and hold to reorder. Sections with nothing to show stay hidden.</p>' +
-      '<ul class="tlist wlist" data-sortable="widgets">' + D().widgets.map((w) => '<li class="trow" data-id="' + w.id + '"><div class="wrow"><span class="grip" aria-hidden="true">⋮⋮</span><span class="tname">' + esc(label(WIDGETS, w.id)) + '</span>' +
-        '<label class="switch" data-nodrag><input type="checkbox" data-widget-on="' + w.id + '"' + (w.on ? ' checked' : '') + ' aria-label="Show ' + esc(label(WIDGETS, w.id)) + '"><span></span></label></div></li>').join('') + '</ul></section>' +
-      '<h2 class="section-title">Health</h2><section class="panel-card">' +
+    return '<h2 class="section-title">Health</h2><section class="panel-card">' +
       '<div class="set-block"><div class="sw-title">Water unit</div>' + seg('water', [['L', 'Litres'], ['ml', 'ml'], ['oz', 'fl oz']], s.water) + '</div>' +
       '<div class="set-block"><div class="sw-title">Distance unit</div>' + seg('distance', [['km', 'km'], ['mi', 'miles']], s.distance) +
       '<div class="hint">Values are stored in ml and km, so switching units never changes what you logged.</div></div>' +

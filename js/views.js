@@ -22,7 +22,7 @@
   const tile = (value, label) => '<div class="tile"><div class="tile-v">' + value + '</div><div class="tile-l">' + label + '</div></div>';
   const pageHead = (eyebrow, title, right) =>
     '<header class="page-head"><div><div class="eyebrow">' + eyebrow + '</div><h1>' + title + '</h1></div>' + (right || '') + '</header>';
-  const addBtn = '<button type="button" class="btn btn-primary" data-action="add-tracker">' + icon.plus + '<span>Add Tracker</span></button>';
+  const addBtn = '<button type="button" class="btn btn-primary" data-action="add-tracker">' + icon.plus + '<span>Add habit</span></button>';
 
   /* ---------- tracker card (Today + detail) ---------- */
 
@@ -79,7 +79,7 @@
   function summaryText(s) {
     return {
       pct: s.total ? s.pct + '%' : '–',
-      line: s.total ? s.done + ' / ' + s.total + ' habits completed' : 'No habits scheduled today',
+      line: s.total ? s.done + ' of ' + s.total + ' habits done' + (s.total > s.done ? ' · ' + (s.total - s.done) + ' remaining' : '') : 'No habits scheduled today',
       head: !s.total ? 'Nothing due' : s.done === s.total ? 'All done' : s.pct + '% complete',
     };
   }
@@ -93,6 +93,8 @@
     HT.$('.sum-line', box).textContent = tx.line;
     HT.$('.sum-bar i', box).style.width = s.ratio * 100 + '%';
     box.classList.toggle('complete', s.total > 0 && s.done === s.total);
+    const ov = HT.$('.ov-stats', box);
+    if (ov && HT.home) ov.outerHTML = HT.home.overviewStats(HT.today());
   }
 
   const TEMPLATES = [
@@ -108,22 +110,35 @@
   const templateChips = () =>
     '<div class="chips">' + TEMPLATES.map((tp, i) => '<button type="button" class="chip" data-action="template" data-i="' + i + '">' + tp.icon + ' ' + esc(tp.name) + '</button>').join('') + '</div>';
 
+  const greeting = () => { const h = new Date().getHours(); return h < 5 ? 'Good evening' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'; };
   HT.views.today = () => {
     const key = HT.today();
     const d = HT.parseKey(key);
-    const head = pageHead('Today', d.toLocaleDateString(undefined, { weekday: 'long' }) + ', ' + d.toLocaleDateString(undefined, { month: 'long', day: 'numeric' }));
-    const addRow = '<button type="button" class="add-row" data-action="add-tracker">' + icon.plus + '<span>Add Tracker</span></button>';
+    const head = '<header class="page-head home-head"><div><div class="eyebrow">' + esc(d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })) + '</div><h1>' + greeting() + '</h1></div>' +
+      '<button type="button" class="btn btn-primary" data-action="home-quick">' + icon.plus + '<span>Log</span></button></header>';
+    const addRow = '<button type="button" class="add-row" data-action="add-tracker">' + icon.plus + '<span>Add habit</span></button>';
 
-    /* Today is a stack of widgets; the order and visibility are chosen in Settings → Today screen. */
+    /* Home is a daily overview plus a stack of sections; their order and visibility are chosen in More → Home dashboard. */
     const widgets = HT.health ? HT.health.widgetOrder() : ['habits', 'weight'];
-    const others = (id) => (id === 'weight' ? (HT.weight ? HT.weight.todayWidget() : '') : HT.health ? HT.health.widget(id) : '');
-    const compose = (habitsHTML) => head + widgets.map((id) => (id === 'habits' ? habitsHTML : others(id))).join('');
+    const others = (id) => (id === 'weight' ? (HT.weight ? HT.weight.todayWidget() : '')
+      : id === 'agenda' ? (HT.schedule ? HT.schedule.agendaWidget() : '') : id === 'recent' ? (HT.schedule ? HT.schedule.recentWidget() : '')
+      : HT.health ? HT.health.widget(id) : '');
+    const s0 = HT.daySummary(key), tx0 = summaryText(s0);
+    const top = head + '<section class="summary' + (s0.total > 0 && s0.done === s0.total ? ' complete' : '') + '" id="summary">' +
+      '<div class="sum-top"><div class="ring"><svg viewBox="0 0 72 72" width="84" height="84"><circle class="ring-bg" cx="36" cy="36" r="30"/>' +
+      '<circle class="ring-fg" cx="36" cy="36" r="30" stroke-dasharray="' + RING + '" style="stroke-dashoffset:' + RING * (1 - s0.ratio) + '"/></svg>' +
+      '<span class="ring-pct">' + tx0.pct + '</span></div>' +
+      '<div class="sum-text"><div class="sum-head">' + tx0.head + '</div><div class="sum-line">' + tx0.line + '</div>' +
+      '<div class="sum-bar"><i style="width:' + s0.ratio * 100 + '%"></i></div></div></div>' + (HT.home ? HT.home.overviewStats(key) : '') + '</section>' +
+      (HT.homeNav ? HT.homeNav('home') : '');
+    const habitsHead = '<div class="widget-h"><h2 class="section-title">Habits</h2><a class="linkish" href="#/habits">Progress</a></div>';
+    const compose = (habitsHTML) => top + '<div class="home-grid">' + widgets.map((id) => (id === 'habits' ? habitsHTML : others(id))).join('') + '</div>';
 
     if (!HT.data.trackers.length) {
-      return compose('<section class="empty"><div class="empty-mark">' + icon.today + '</div><h2>Start with one habit</h2>' +
-        '<p>Create a tracker for anything you want to do daily — a checkbox, a number, minutes, a counter.</p>' +
-        '<button type="button" class="btn btn-primary btn-lg" data-action="add-tracker">' + icon.plus + '<span>Add Tracker</span></button>' +
-        '<p class="empty-sub">Or start from an idea</p>' + templateChips() + '</section>');
+      return compose('<section class="widget" data-widget="habits">' + habitsHead + '<section class="panel-card empty-card"><h3>Start with one habit</h3>' +
+        '<p class="muted">Track anything you want to do regularly — a checkbox, a number, minutes, a counter.</p>' +
+        '<div class="btn-row gap-top"><button type="button" class="btn btn-primary" data-action="add-tracker">' + icon.plus + '<span>Add habit</span></button></div>' +
+        '<p class="hint gap-top">Or start from an idea</p>' + templateChips() + '</section></section>');
     }
 
     let list = HT.sorted().filter((t) => t.status === 'active' && t.startDate <= key);
@@ -132,15 +147,7 @@
     if (sort === 'incomplete') list.sort((a, b) => HT.isDone(a, key) - HT.isDone(b, key));
     const due = list.filter((t) => HT.isExpected(t, key));
     const off = list.filter((t) => !HT.isExpected(t, key));
-    const s = HT.daySummary(key), tx = summaryText(s);
-
-    let html =
-      '<section class="summary' + (s.total > 0 && s.done === s.total ? ' complete' : '') + '" id="summary">' +
-      '<div class="ring"><svg viewBox="0 0 72 72" width="84" height="84"><circle class="ring-bg" cx="36" cy="36" r="30"/>' +
-      '<circle class="ring-fg" cx="36" cy="36" r="30" stroke-dasharray="' + RING + '" style="stroke-dashoffset:' + RING * (1 - s.ratio) + '"/></svg>' +
-      '<span class="ring-pct">' + tx.pct + '</span></div>' +
-      '<div class="sum-text"><div class="sum-head">' + tx.head + '</div><div class="sum-line">' + tx.line + '</div>' +
-      '<div class="sum-bar"><i style="width:' + s.ratio * 100 + '%"></i></div></div></section>';
+    let html = habitsHead;
 
     if (due.length) {
       html += '<ul class="tlist"' + (sort === 'manual' ? ' data-sortable' : '') + '>' + due.map((t) => card(t, key)).join('') + '</ul>';
@@ -149,9 +156,9 @@
     }
     html += addRow;
     if (off.length) {
-      html += '<h2 class="section-title">Not scheduled today</h2><ul class="tlist off">' + off.map((t) => card(t, key)).join('') + '</ul>';
+      html += '<details class="nmore off-list"><summary>' + plural(off.length, 'habit') + ' not scheduled today</summary><ul class="tlist off">' + off.map((t) => card(t, key)).join('') + '</ul></details>';
     }
-    if (sort === 'manual' && due.length > 1) html += '<p class="hint center">Press and hold a tracker to reorder</p>';
+    if (sort === 'manual' && due.length > 1) html += '<p class="hint center">Press and hold a habit to reorder</p>';
     return compose('<section class="widget" data-widget="habits">' + html + '</section>');
   };
 
@@ -171,7 +178,7 @@
     if (!wasDone && HT.isDone(t, key) && t.financeLink && HT.finance) HT.finance.onHabitDone(t, key);
   };
   HT.afterLog = (id, key) => {
-    if (HT.route.name === 'today' && HT.data.settings.sort !== 'incomplete') {
+    if ((HT.route.name === 'today' || HT.route.name === 'home') && HT.data.settings.sort !== 'incomplete') {
       patchCards(id, key);
       patchSummary();
     } else {
@@ -328,8 +335,14 @@
     }
     detail += '</section>';
 
-    return pageHead('History', 'Calendar', vs.histMonth !== today.slice(0, 7) || key !== today ? '<button type="button" class="btn" data-action="hist-today">Today</button>' : '') +
-      '<section class="panel-card">' + calendar(vs.histMonth, HT.dayStatus, 'hist', key) + legend + '</section>' + detail;
+    const links = '<section class="panel-card"><h3>Full history</h3><ul class="dlist link-list">' + [
+      ['#/health/workouts', '🏋️', 'Workouts'], ['#/strength/history', '📈', 'Strength sessions'], ['#/nutrition', '🍽️', 'Meals and nutrition'],
+      ['#/weight', '⚖️', 'Weight history'], ['#/health/supplements', '💊', 'Supplements'], ['#/finance/activity', '💰', 'Transactions'], ['#/schedule/timeline', '🕒', 'Activity timeline'],
+    ].map((l) => '<li><a class="drow" href="' + l[0] + '"><span class="ticon" aria-hidden="true">' + l[1] + '</span><span class="dname">' + l[2] + '</span><span class="chev">' + icon.next + '</span></a></li>').join('') + '</ul></section>';
+    return (HT.schedule ? HT.schedule.head('history') : pageHead('History', 'Calendar')) +
+      '<div class="sc-bar"><span class="muted">Habit completion by day — tap a day to see or fix what was logged.</span>' + (vs.histMonth !== today.slice(0, 7) || key !== today ? '<button type="button" class="btn btn-sm" data-action="hist-today">Today</button>' : '') + '</div>' +
+      '<div class="sc-split"><section class="panel-card">' + calendar(vs.histMonth, HT.dayStatus, 'hist', key) + legend + '</section><div>' + detail +
+      (HT.schedule && key <= today ? HT.schedule.dayActivity(key, ['habits']) : '') + '</div></div>' + links;
   };
   HT.actions['hist-month'] = (el) => { HT.vs.histMonth = shiftMonth(HT.vs.histMonth, +el.dataset.d); HT.render(); };
   HT.actions['hist-day'] = (el) => { HT.vs.histDate = el.dataset.date; HT.render(); };
@@ -348,10 +361,13 @@
       '" style="height:' + Math.max(0, Math.min(100, c.pct || 0)) + '%"></i></div><span>' + c.label + '</span></div>').join('') + '</div>';
   }
 
+  const habitsHead = (cur, right) => pageHead('Home', 'Habits', right) + (HT.homeNav ? HT.homeNav('habits') : '') +
+    '<nav class="segmented gap-bottom" aria-label="Habit sections">' + [['', 'Progress'], ['manage', 'Manage']].map((t) => '<a href="#/habits' + (t[0] ? '/' + t[0] : '') + '"' + (t[0] === cur ? ' aria-current="page"' : '') + '>' + t[1] + '</a>').join('') + '</nav>';
+  HT.views.habits = (tab) => (tab === 'manage' ? HT.views.trackers() : HT.views.stats());
   HT.views.stats = () => {
     const today = HT.today();
     if (!HT.data.trackers.length) {
-      return pageHead('Stats', 'Overview') + '<p class="note">Add a tracker and your weekly and monthly progress will show up here.</p>';
+      return habitsHead('', addBtn) + '<section class="empty"><h2>No habits yet</h2><p>Add a habit and your streaks, weekly and monthly progress show up here.</p></section>' + templateChips();
     }
     const ws = HT.weekStart(today), we = HT.addDays(ws, 6);
     const week = HT.rangeSummary(ws, we);
@@ -378,8 +394,8 @@
     let strip = '';
     for (let k = ms; k <= me; k = HT.addDays(k, 1)) strip += '<i class="sq s-' + HT.dayStatus(k) + '" title="' + esc(fmtShort(k)) + '"></i>';
 
-    return pageHead('Stats', 'Overview') +
-      '<h2 class="section-title">This week</h2>' +
+    return habitsHead('', addBtn) +
+      '<h2 class="section-title first">This week</h2>' +
       '<div class="tiles t3">' + tile(week.expected ? week.pct + '%' : '–', 'Completion') + tile(week.done, 'Completed') + tile(week.missed, 'Missed') + '</div>' +
       '<section class="panel-card"><h3>Daily completion</h3>' + barChart(weekCols) + '</section>' +
       '<section class="panel-card"><h3>Current streaks</h3>' + (streaks.length
@@ -415,9 +431,9 @@
       '<span class="tinfo"><span class="tname">' + esc(t.name) + '</span><span class="tsub"><span class="tprog">' + esc(describe(t)) + '</span></span></span>' +
       '<span class="chev">' + icon.next + '</span></button></li>';
     const active = group('active'), paused = group('paused'), archived = group('archived');
-    let html = pageHead('Trackers', 'Your trackers', addBtn);
-    if (!all.length) return html + '<p class="note">No trackers yet. Add one to get started.</p>' + templateChips();
-    html += '<h2 class="section-title">Active</h2>' + (active.length
+    let html = habitsHead('manage', addBtn);
+    if (!all.length) return html + '<p class="note">No habits yet. Add one to get started.</p>' + templateChips();
+    html += '<p class="hint gap-bottom">Tap a habit to edit, pause, archive or delete it. Archived habits keep their history.</p><h2 class="section-title first">Active</h2>' + (active.length
       ? '<ul class="tlist" data-sortable>' + active.map(row).join('') + '</ul>' + (active.length > 1 ? '<p class="hint center">Press and hold to reorder</p>' : '')
       : '<p class="note">No active trackers.</p>');
     if (paused.length) html += '<h2 class="section-title">Paused</h2><ul class="tlist off">' + paused.map(row).join('') + '</ul>';
@@ -441,7 +457,7 @@
 
   HT.views.tracker = (id) => {
     const t = HT.tracker(id);
-    if (!t) return pageHead('Trackers', 'Not found') + '<p class="note">This tracker no longer exists.</p><a class="btn" href="#/trackers">Back to trackers</a>';
+    if (!t) return pageHead('Habits', 'Not found') + '<p class="note">This habit no longer exists.</p><a class="btn" href="#/habits/manage">Back to habits</a>';
     const today = HT.today();
     const ty = HT.typeOf(t), st = HT.stats(t), goal = HT.goal(t);
     if (!HT.vs.tcalMonth) HT.vs.tcalMonth = today.slice(0, 7);
@@ -469,7 +485,7 @@
     }
 
     const badge = t.status === 'active' ? '' : '<span class="badge">' + (t.status === 'paused' ? 'Paused' : 'Archived') + '</span>';
-    let html = '<div class="back-row"><a class="btn btn-ghost" href="#/trackers">' + icon.back + '<span>Trackers</span></a></div>' +
+    let html = '<div class="back-row"><a class="btn btn-ghost" href="#/habits/manage">' + icon.back + '<span>Habits</span></a></div>' +
       '<header class="detail-head" style="--c:' + t.color + '">' + iconBox(t) + '<div><h1>' + esc(t.name) + badge + '</h1>' +
       (t.description ? '<p class="desc">' + esc(t.description) + '</p>' : '') + '<p class="muted">' + esc(describe(t)) +
       (t.reminder.enabled ? ' · Reminder ' + esc(t.reminder.time) : '') + (t.counts ? '' : ' · Not counted in daily %') + '</p></div></header>' +
@@ -523,7 +539,7 @@
     const t = actionTracker(el);
     const n = HT.entryCount(t.id);
     const ok = await HT.confirm({
-      title: 'Delete tracker?',
+      title: 'Delete habit?',
       message: 'This permanently deletes <b>' + esc(t.name) + '</b>' + (n ? ' and its ' + plural(n, 'day') + ' of history' : '') +
         '. This can\'t be undone.' + (t.status !== 'archived' ? ' To hide it but keep the history, archive it instead.' : ''),
       confirmLabel: 'Delete',
@@ -531,8 +547,8 @@
     });
     if (!ok) return;
     HT.deleteTracker(t.id);
-    HT.toast('Tracker deleted');
-    location.hash = '#/trackers';
+    HT.toast('Habit deleted');
+    location.hash = '#/habits/manage';
   };
 
   /* ---------- Add / edit form ---------- */
@@ -602,9 +618,9 @@
 
     HT.openSheet({
       kind: 'sheet tall',
-      title: isNew ? 'New tracker' : 'Edit tracker',
+      title: isNew ? 'New habit' : 'Edit habit',
       html: body(),
-      footer: '<button type="button" class="btn" data-close>Cancel</button><button type="button" class="btn btn-primary" data-save>' + (isNew ? 'Add tracker' : 'Save changes') + '</button>',
+      footer: '<button type="button" class="btn" data-close>Cancel</button><button type="button" class="btn btn-primary" data-save>' + (isNew ? 'Add habit' : 'Save changes') + '</button>',
       onMount: (wrap, close) => {
         const $ = (sel) => HT.$(sel, wrap);
         const read = () => {
@@ -669,14 +685,14 @@
           } else if (hit('[data-save]')) {
             read();
             const ty = HT.types[s.type];
-            if (!s.name) { HT.toast('Give your tracker a name'); $('#f-name').focus(); return; }
+            if (!s.name) { HT.toast('Give your habit a name'); $('#f-name').focus(); return; }
             if (ty.hasTarget && !(s.target > 0)) { HT.toast('Enter a goal greater than 0'); $('#f-target').focus(); return; }
             if (s.type === 'percentage' && s.target > 100) { HT.toast('A percentage goal can\'t be over 100'); return; }
             if (s.frequency.mode === 'days' && !s.frequency.days.length) { HT.toast('Pick at least one day'); return; }
             const saved = isNew ? HT.createTracker(s) : HT.updateTracker(s.id, s);
             if (saved.reminder.enabled && HT.enableNotifications) HT.enableNotifications(true);
             close();
-            HT.toast(isNew ? 'Tracker added' : 'Changes saved');
+            HT.toast(isNew ? 'Habit added' : 'Changes saved');
             HT.render();
           }
         });
@@ -686,7 +702,7 @@
 
   /* ---------- Settings ---------- */
 
-  HT.views.settings = () => {
+  HT.views.settings = (sec) => {
     const st = HT.data.settings;
     const seg = (name, options, cur) => '<div class="segmented" data-setting="' + name + '">' +
       options.map((o) => '<button type="button" data-action="set-setting" data-v="' + o[0] + '" aria-pressed="' + (String(o[0]) === String(cur)) + '">' + o[1] + '</button>').join('') + '</div>';
@@ -700,25 +716,25 @@
       '<button type="button" class="btn" data-action="' + (notifOn ? 'notif-off' : 'notif-on') + '">' + (notifOn ? 'Turn off' : 'Turn on') + '</button></div>' +
       (notifOn ? '<div class="set-row"><div class="hint">Check that alerts reach you.</div><button type="button" class="btn" data-action="notif-test">Send test</button></div>' : '');
 
-    return pageHead('Settings', 'Settings') +
-      '<h2 class="section-title">Appearance</h2><section class="panel-card">' + seg('theme', [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']], st.theme) + '</section>' +
-
-      '<h2 class="section-title">Trackers</h2><section class="panel-card">' +
-      '<div class="set-block"><div class="sw-title">Order on Today</div>' + seg('sort', [['manual', 'My order'], ['incomplete', 'Unfinished first'], ['name', 'A–Z']], st.sort) +
+    const SECTIONS = {};
+    SECTIONS.appearance = ['Appearance', '<h2 class="section-title first">Theme</h2><section class="panel-card">' + seg('theme', [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']], st.theme) +
+      '<p class="hint">System follows your phone\'s light or dark setting.</p></section>'];
+    SECTIONS.habits = ['Habit preferences', '<h2 class="section-title first">Habits</h2><section class="panel-card">' +
+      '<div class="set-block"><div class="sw-title">Habit order on Home</div>' + seg('sort', [['manual', 'My order'], ['incomplete', 'Unfinished first'], ['name', 'A–Z']], st.sort) +
       '<div class="hint">“My order” is the order you set by pressing and holding a tracker and dragging it.</div></div>' +
       '<div class="set-block"><div class="sw-title">Daily completion</div>' + seg('completion', [['binary', 'Completed only'], ['partial', 'Partial credit']], st.completion) +
       '<div class="hint">' + (st.completion === 'binary' ? 'The daily % counts only habits that reached their goal.' : 'The daily % gives partial credit — 2 L of a 3 L goal counts as 67%.') + '</div></div>' +
-      '<div class="set-block"><div class="sw-title">Week starts on</div>' + seg('weekStart', [[0, 'Sunday'], [1, 'Monday']], st.weekStart) + '</div></section>' +
-
-      (HT.finance ? HT.finance.settingsHTML() : '') +
-      (HT.weight ? HT.weight.settingsHTML() : '') +
-      (HT.health ? HT.health.settingsHTML() : '') +
-
-      '<h2 class="section-title">Reminders</h2><section class="panel-card">' + notif +
+      '<div class="set-block"><div class="sw-title">Week starts on</div>' + seg('weekStart', [[0, 'Sunday'], [1, 'Monday']], st.weekStart) + '<div class="hint">Also used by the calendar, timeline and weekly summaries.</div></div></section>'];
+    SECTIONS.home = ['Home dashboard', HT.health ? HT.health.widgetSettingsHTML() : ''];
+    SECTIONS.health = ['Health & units', (HT.weight ? HT.weight.settingsHTML() : '') + (HT.health ? HT.health.unitSettingsHTML() : '') +
+      (HT.micros ? '<h2 class="section-title">Nutrition</h2><section class="panel-card"><div class="set-row"><div><div class="sw-title">Profile and nutrition targets</div><div class="hint">Age, sex, height and activity; calorie, macro, vitamin and mineral targets.</div></div><a class="btn" href="#/nutrition/targets">Open</a></div>' +
+        '<div class="set-row"><div><div class="sw-title">Food diary settings</div><div class="hint">Meal categories, Open Food Facts and the meal-photo token.</div></div><button type="button" class="btn" data-action="n-settings">Open</button></div></section>' : '')];
+    SECTIONS.finance = ['Finance settings', HT.finance ? HT.finance.settingsHTML() : ''];
+    SECTIONS.reminders = ['Notifications', '<h2 class="section-title first">Reminders</h2><section class="panel-card">' + notif +
       '<p class="hint">This app has no server, so it can only alert you while it is open or was used recently — your phone may not deliver a reminder if the app has been closed for a while. ' +
       'When you open the app it will always show any reminders you missed. For an alarm that must fire, also set one in your phone\'s Clock or Reminders app.</p></section>' +
-
-      '<h2 class="section-title">Data</h2><section class="panel-card">' +
+      '<p class="hint">Reminder times are set per habit (Home → Habits → Manage → a habit → Edit), and for weigh-ins in Health & units.</p>'];
+    SECTIONS.data = ['Data & backup', '<h2 class="section-title first">Your data</h2><section class="panel-card">' +
       '<p class="muted">' + plural(HT.data.trackers.length, 'tracker') + ' · ' + plural(days, 'day') + ' of entries · finance, weight and health data · stored only on this device' +
       (HT.storageOK ? '' : ' · <b class="danger-text">saving is failing</b>') + '</p>' +
       '<div class="set-row"><div><div class="sw-title">Back up</div><div class="hint">' + (HT.data.meta.lastBackup ? 'Last backup ' + esc(fmtShort(HT.data.meta.lastBackup.slice(0, 10))) : 'No backup yet') + '. Save the file to Files, iCloud or email.</div></div>' +
@@ -726,13 +742,15 @@
       '<div class="set-row"><div><div class="sw-title">Export data</div><div class="hint">Download everything as a JSON file.</div></div><button type="button" class="btn" data-action="export">Export</button></div>' +
       '<div class="set-row"><div><div class="sw-title">Import data</div><div class="hint">Restore from a backup file. Replaces what is here.</div></div>' +
       '<button type="button" class="btn" data-action="import">Import</button><input type="file" id="import-file" accept="application/json,.json" hidden></div>' +
-      '<div class="set-row"><div><div class="sw-title">Reset all data</div><div class="hint">Delete every tracker, entry, finance record, weigh-in and health record on this device.</div></div><button type="button" class="btn btn-danger-ghost" data-action="reset">Reset</button></div></section>' +
-
-      '<h2 class="section-title">Install</h2><section class="panel-card"><p class="muted"><b>iPhone:</b> open this page in Safari, tap Share, then “Add to Home Screen”. ' +
+      '<div class="set-row"><div><div class="sw-title">Reset all data</div><div class="hint">Delete every habit, entry, event, finance record, weigh-in and health record on this device.</div></div><button type="button" class="btn btn-danger-ghost" data-action="reset">Reset</button></div></section>'];
+    SECTIONS.install = ['Install on your phone', '<h2 class="section-title first">Install</h2><section class="panel-card"><p class="muted"><b>iPhone:</b> open this page in Safari, tap Share, then “Add to Home Screen”. ' +
       '<b>Android:</b> open the browser menu and tap “Install app”. Once installed it opens full screen and works offline.</p>' +
-      '<p class="hint">Your data lives in this browser only. The Home Screen app keeps its own separate data from Safari, so install first, then add your trackers — and back up now and then.</p></section>' +
-      '<p class="hint center">Habits · data format v' + HT.VERSION + '</p>';
+      '<p class="hint">Your data lives in this browser only. The Home Screen app keeps its own separate data from Safari, so install first, then add your habits — and back up now and then.</p></section>'];
+    const back = '<div class="back-row"><a class="btn btn-ghost" href="#/more">' + icon.back + '<span>More</span></a></div>';
+    if (sec && SECTIONS[sec]) return back + pageHead('Settings', esc(SECTIONS[sec][0])) + SECTIONS[sec][1];
+    return back + pageHead('More', 'All settings') + Object.keys(SECTIONS).map((k) => SECTIONS[k][1]).join('') + '<p class="hint center">Habits · data format v' + HT.VERSION + '</p>';
   };
+  HT.SETTINGS_SECTIONS = ['appearance', 'habits', 'home', 'health', 'finance', 'reminders', 'data', 'install'];
 
   HT.actions['set-setting'] = (el) => {
     const name = el.parentNode.dataset.setting;
@@ -814,7 +832,7 @@
     HT.resetData();
     HT.applyTheme();
     HT.toast('All data cleared');
-    location.hash = '#/today';
+    location.hash = '#/home';
     HT.render();
   };
 })();

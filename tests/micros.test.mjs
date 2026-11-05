@@ -339,9 +339,10 @@ test('Vitamins, Targets, Diary and Health screens render with and without data',
   assert.match(HT.views.nutrition('micros'), /Nothing logged on this day/);
 });
 
-test('Health puts Nutrition right after Overview', () => {
+test('Nutrition is near the front of the Home section bar', () => {
   const { HT } = loadApp();
   const nav = HT.health.subnav('');
   const order = Array.from(nav.matchAll(/>([^<]+)<\/a>/g)).map((m) => m[1]);
-  assert.deepEqual(order.slice(0, 3), ['Overview', 'Nutrition', 'Weight']);
+  assert.deepEqual(order.slice(0, 3), ['Today', 'Habits', 'Nutrition']);
+  assert.match(nav, /aria-current="page">Insights/, 'the Health overview is highlighted as Insights');
 });
