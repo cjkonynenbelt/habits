@@ -137,6 +137,8 @@
       id: str(x.id, 40) || hid('rt'), name: str(x.name, 80).trim(), serving: str(x.serving, 80), schedule: normSchedule(x.schedule),
       startDate: HT.isDateKey(x.startDate) ? x.startDate : HT.today(), timeOfDay: TIMES.some((t) => t[0] === x.timeOfDay) ? x.timeOfDay : '',
       itemId: itemIds.has(x.itemId) ? x.itemId : null, perServing: pos(x.perServing), notes: str(x.notes, 300),
+      // Optional supplement-facts panel (vitamins / minerals per serving); validated by micros.js.
+      facts: HT.micros ? HT.micros.normFacts(x.facts) : x.facts || null,
       status: x.status === 'paused' ? 'paused' : 'active',
       pauses: arr(x.pauses).filter((p) => p && HT.isDateKey(p.from)).map((p) => ({ from: p.from, to: HT.isDateKey(p.to) ? p.to : null })),
       createdAt: x.createdAt || new Date().toISOString(),
@@ -148,7 +150,11 @@
       const day = {};
       Object.keys(obj(r.intake[k])).forEach((id) => {
         const e = obj(r.intake[k][id]);
-        if (routineIds.has(id) && (e.s === 'taken' || e.s === 'skipped')) day[id] = { s: e.s, d: nonneg(e.d) || 0 };
+        if (routineIds.has(id) && (e.s === 'taken' || e.s === 'skipped')) {
+          day[id] = { s: e.s, d: nonneg(e.d) || 0 };
+          // Nutrients recorded when it was taken (so later label edits don't rewrite history).
+          if (e.s === 'taken' && e.n) Object.assign(day[id], HT.micros ? HT.micros.normSnap(e) : { n: e.n, ul: e.ul });
+        }
       });
       if (Object.keys(day).length) intake[k] = day;
     });
@@ -294,6 +300,7 @@
       let d = 0;
       if (state === 'taken' && D().settings.deductStock && it && it.onHand != null && x.perServing) { d = Math.min(it.onHand, x.perServing); it.onHand = r2(it.onHand - d); }
       day[x.id] = { s: state, d };
+      if (state === 'taken' && HT.micros) Object.assign(day[x.id], HT.micros.snapFor(x));
     }
     if (!Object.keys(day).length) delete D().intake[key];
     HT.save();
@@ -354,7 +361,7 @@
   /* ---------- shared UI pieces ---------- */
 
   H.vs = { day: null, suppDay: null, period: '3M', status: 'tobuy', category: '', priority: '', sort: 'priority', allWorkouts: false };
-  const TABS = [['', 'Overview'], ['weight', 'Weight'], ['nutrition', 'Nutrition'], ['strength', 'Strength'], ['daily', 'Daily'], ['workouts', 'Workouts'], ['supplements', 'Supplements'], ['shopping', 'Shopping']];
+  const TABS = [['', 'Overview'], ['nutrition', 'Nutrition'], ['weight', 'Weight'], ['strength', 'Strength'], ['daily', 'Daily'], ['workouts', 'Workouts'], ['supplements', 'Supplements'], ['shopping', 'Shopping']];
   const OWN_ROUTE = ['weight', 'nutrition', 'strength'];
   H.subnav = (cur) => '<nav class="hsub" aria-label="Health sections">' + TABS.map((t) => {
     const href = OWN_ROUTE.includes(t[0]) ? '#/' + t[0] : '#/health' + (t[0] ? '/' + t[0] : '');
@@ -835,7 +842,8 @@
     html += '<section class="panel-card"><h3>Your routine</h3><ul class="dlist">' + all.map((x) => {
       const it = x.itemId ? H.item(x.itemId) : null;
       return '<li data-id="' + x.id + '"><button type="button" class="drow" data-action="h-rt-edit"><span class="dname">' + esc(x.name) + (x.status === 'paused' ? ' <em class="tag">paused</em>' : '') +
-        '<small>' + esc([x.serving, scheduleText(x), label(TIMES, x.timeOfDay) && x.timeOfDay ? label(TIMES, x.timeOfDay) : '', it ? 'stock: ' + it.name : ''].filter(Boolean).join(' · ')) + '</small></span><span class="chev">' + icon.next + '</span></button></li>';
+        '<small>' + esc([x.serving, scheduleText(x), label(TIMES, x.timeOfDay) && x.timeOfDay ? label(TIMES, x.timeOfDay) : '', it ? 'stock: ' + it.name : ''].filter(Boolean).join(' · ')) + '</small>' +
+        (HT.micros && HT.micros.factsLine(x) ? '<small>' + esc(HT.micros.factsLine(x)) + '</small>' : '') + '</span><span class="chev">' + icon.next + '</span></button></li>';
     }).join('') + '</ul></section>' + note;
     return html;
   }
@@ -845,6 +853,7 @@
     const sched = JSON.parse(JSON.stringify(x.schedule));
     if (!sched.days.length) sched.days = [1, 3, 5];
     const items = D().items.filter((i) => i.status !== 'dropped');
+    const fx = HT.micros ? HT.micros.factsDraft(x.facts) : null; // editable copy of the supplement facts
     const body = () => field('Name', textInput('rt-name', x.name, 'e.g. Vitamin D', 80)) +
       field('Serving, as written on the label', textInput('rt-serving', x.serving, 'e.g. 1 softgel', 80), true) +
       '<div class="row2">' + field('Schedule', select('rt-mode', [['daily', 'Every day'], ['days', 'Specific days'], ['interval', 'Every few days'], ['asneeded', 'As needed (not scheduled)']], sched.mode)) +
@@ -854,7 +863,8 @@
       field('Start date', '<input id="rt-start" type="date" value="' + x.startDate + '">') +
       (items.length ? '<div class="row2">' + field('Count stock from', '<select id="rt-item"><option value="">Don\'t track stock</option>' + items.map((i) => opt(i.id, i.name, x.itemId || '')).join('') + '</select>', true) +
         field('Units per serving', numInput('rt-per', x.perServing, 'e.g. 1'), true) + '</div><p class="hint gap-bottom">If set, logging "Taken" subtracts this from the item\'s on-hand count (and undoing it adds it back).</p>' : '') +
-      field('Notes', textInput('rt-notes', x.notes, '', 300), true);
+      field('Notes', textInput('rt-notes', x.notes, '', 300), true) +
+      (fx ? HT.micros.factsForm(fx, existing ? Object.keys(D().intake).filter((k) => D().intake[k][x.id] && D().intake[k][x.id].s === 'taken').length : 0) : '');
     formSheet({
       title: existing ? 'Edit routine item' : 'Add to routine',
       kind: 'sheet tall',
@@ -869,6 +879,7 @@
       } : null,
       deleteLabel: 'Remove',
       onMount: (wrap) => {
+        if (fx) HT.micros.bindFacts(wrap, fx);
         wrap.addEventListener('change', (e) => {
           if (e.target.id !== 'rt-mode') return;
           const keep = { name: val(wrap, '#rt-name'), serving: val(wrap, '#rt-serving'), timeOfDay: val(wrap, '#rt-time'), startDate: val(wrap, '#rt-start') || x.startDate, notes: val(wrap, '#rt-notes') };
@@ -896,16 +907,21 @@
         if (!name) { HT.toast('Enter a name'); HT.$('#rt-name', wrap).focus(); return false; }
         const mode = val(wrap, '#rt-mode');
         if (mode === 'days' && !sched.days.length) { HT.toast('Pick at least one day'); return false; }
+        const facts = fx ? HT.micros.readFacts(fx) : { facts: x.facts };
+        if (facts.error) { HT.toast(facts.error); return false; }
+        const applyPast = !!(HT.$('#rt-fx-apply', wrap) && HT.$('#rt-fx-apply', wrap).checked);
         const fields = {
           name, serving: val(wrap, '#rt-serving'), timeOfDay: val(wrap, '#rt-time'), notes: val(wrap, '#rt-notes'),
           startDate: HT.isDateKey(val(wrap, '#rt-start')) ? val(wrap, '#rt-start') : x.startDate,
           schedule: { mode, days: sched.days, every: Math.max(2, Math.round(num(val(wrap, '#rt-every')) || sched.every)) },
           itemId: HT.$('#rt-item', wrap) ? val(wrap, '#rt-item') || null : x.itemId,
           perServing: HT.$('#rt-per', wrap) ? pos(val(wrap, '#rt-per')) : x.perServing,
+          facts: facts.facts,
         };
         if (existing) Object.assign(existing, fields);
         else D().routines.push(Object.assign({ id: hid('rt'), status: 'active', pauses: [], createdAt: new Date().toISOString() }, fields));
         HT.data.health = HT.normalizeHealth(D());
+        if (existing && applyPast) HT.micros.applyFactsToPast(D().routines.find((r) => r.id === existing.id));
         HT.toast(existing ? 'Routine updated' : 'Added to routine');
       },
     });
@@ -1120,6 +1136,7 @@
       '<button type="button" class="btn" data-action="h-wo-log">🏋️<span>Log workout</span></button>' +
       '<a class="btn" href="#/health/daily">💧<span>Daily log</span></a>' +
       '<a class="btn" href="#/health/supplements">💊<span>Supplements</span></a></div>' +
+      (HT.micros ? HT.micros.healthCard() : '') +
       '<div class="segmented gap-bottom" data-hset="period">' + PERIODS.map((p) => '<button type="button" data-action="h-period" data-v="' + p[0] + '" aria-pressed="' + (p[0] === H.vs.period) + '">' + p[0] + '</button>').join('') + '</div>' +
       '<p class="hint gap-bottom">Since ' + esc(longDate(from)) + '. Figures appear only once there is enough data; days without an entry are left out, not counted as zero.</p>';
 

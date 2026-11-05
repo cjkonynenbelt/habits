@@ -43,7 +43,7 @@ test('v5 data upgrades to v6: lifts logged by name get exercises, nothing else c
     },
   };
   const out = HT.migrate(v5);
-  assert.equal(out.version, 6);
+  assert.equal(out.version, HT.VERSION);
   const ex = out.health.exercises;
   assert.deepEqual(json(ex.map((e) => [e.name, e.group])), [['Bench Press', 'Chest'], ['Cable Fly', 'Other']]);
   const [w1, w2, w3] = out.health.workouts;
@@ -220,7 +220,7 @@ test('saved lifts survive a reload, a backup round trip and the old Workouts for
   HT.save();
   const saved = store.get('habits.data');
   HT.load();
-  assert.equal(HT.data.version, 6);
+  assert.equal(HT.data.version, HT.VERSION);
   assert.equal(HT.strength.history(bench.id).list.length, 1);
   assert.equal(HT.data.health.workouts[0].exercises[0].notes, 'note');
   assert.deepEqual(json(HT.data), JSON.parse(saved), 'reload gives identical data');

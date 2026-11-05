@@ -5,7 +5,7 @@
 
   const HT = (window.HT = {});
   const STORAGE_KEY = 'habits.data';
-  HT.VERSION = 6; // 1 = habits only, 2 = + finance, 3 = + weight, 4 = + health & fitness, 5 = + nutrition, 6 = + strength exercises
+  HT.VERSION = 7; // 1 = habits only, 2 = + finance, 3 = + weight, 4 = + health & fitness, 5 = + nutrition, 6 = + strength exercises, 7 = + vitamins & minerals
 
   /* ---------- dates (always local time, keyed as YYYY-MM-DD) ---------- */
 
@@ -197,6 +197,12 @@
     4: (data) => { data.nutrition = data.nutrition || null; data.version = 5; },
     // The strength exercise list is built from existing workout entries by HT.normalizeHealth.
     5: (data) => { data.version = 6; },
+    // The old sodium "target" was always shown as a limit; it becomes a custom upper limit.
+    6: (data) => {
+      const n = data.nutrition;
+      if (n && n.targets && n.targets.sodium != null) { n.limits = Object.assign({ sodium: n.targets.sodium }, n.limits || {}); delete n.targets.sodium; }
+      data.version = 7;
+    },
   };
   HT.migrate = (input) => {
     if (!input || typeof input !== 'object' || !Array.isArray(input.trackers)) {

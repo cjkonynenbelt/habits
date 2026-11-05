@@ -34,7 +34,7 @@ token), and two libraries downloaded from jsDelivr the first time you scan a bar
 - **Activity** — everything in one list, filtered by week, month, year or a custom range
 - **Optional habit link** — a habit such as "Save $20" can offer to add that amount to a goal
 
-**Health & fitness** (the Health tab — second in the bottom bar: Overview · Weight · Nutrition · Strength · Daily · Workouts · Supplements · Shopping)
+**Health & fitness** (the Health tab — second in the bottom bar: Overview · Nutrition · Weight · Strength · Daily · Workouts · Supplements · Shopping)
 
 - **Weight** — quick weigh-in from Today; date, time and an optional note; several weigh-ins a day are kept
   and averaged for that day. Graph for 1W / 1M / 3M / 6M / 1Y / All with a 7-day average line, tap-to-read
@@ -76,8 +76,9 @@ token), and two libraries downloaded from jsDelivr the first time you scan a bar
 
 - **Diary** — breakfast, lunch, dinner, snacks and your own meal categories; each entry shows serving, calories,
   protein, carbohydrate and fat. Edit, delete, duplicate, move between meals, log past days.
-- **Dashboard** — calories eaten / left, protein, carbohydrate, fat, fibre, sugars, sodium and any other nutrients
-  the foods list. Targets are optional and set by you.
+- **Dashboard** — calories eaten / left, protein, carbohydrate, fat and fibre, eight key vitamins and minerals,
+  water (one-tap +250 ml from the Health water log) and today's supplements to tick off, all on the diary page.
+  The Health overview has a "Nutrition today" card too.
 - **Barcode scanner** — phone camera (or a photo, or typing the number) → Open Food Facts product: name, brand,
   serving, nutrition, ingredients, allergens. Choose how much you had; products are cached for 30 days and can be
   favourited. Not found → scan its label, search, or enter it yourself.
@@ -90,6 +91,39 @@ token), and two libraries downloaded from jsDelivr the first time you scan a bar
 - **Trends** — week / month / 3 months: averages per logged day, how often calorie and protein targets were met,
   and a week-by-week table next to weight change and workouts.
 - Health's "Calories" and "Protein" metrics read the food diary on days you log food, so nothing is entered twice.
+
+**Vitamins & minerals** (Health → Nutrition → Vitamins)
+
+- **28 nutrients** — vitamins A, C, D, E, K (K1 and K2 when listed), B1, B2, B3, B5, B6, B7, B9, B12, choline;
+  calcium, magnesium, zinc, iron, potassium, sodium, phosphorus, selenium, copper, manganese, iodine, chromium,
+  molybdenum, chloride. Each shows consumed, target, %, remaining, upper limit and status (below / met / above a
+  limit / no data). Tap one to see every food and supplement it came from and its share.
+- **All sources, counted once** — food diary entries plus supplements marked Taken in Health → Supplements. Add
+  "Supplement facts" to a supplement (amount per serving from the label, in µg / mg / g, or IU where the
+  conversion is fixed: vitamin D, and A or E with the form chosen). The amounts are copied onto each day it's
+  taken, so later label edits don't rewrite history unless you tick "Also update past days".
+- **Unknown is not zero** — a food that doesn't list a nutrient is shown as unknown, and the screen says how many
+  foods didn't list it.
+- **Upper limits by source** — total-intake limits (zinc, iron, vitamin D, …) use food + supplements; limits that
+  apply only to supplements (magnesium, vitamin E, niacin, folic acid, preformed vitamin A) count supplements only.
+  Sodium uses the CDRR (2,300 mg), which is a long-term risk level, not a toxicity limit.
+- **Alerts** — over a limit, supplements pushing a total over, two supplements with the same nutrient, often below
+  target, often over. Informational only; the app never suggests changing a dose.
+- **History** — 7D / 30D / 90D / 1Y / custom dates, daily / weekly / monthly averages, a chart per nutrient with
+  target and limit lines, often-short and often-over lists, and a period table. Days with nothing logged are left out.
+
+**Nutrition targets** (Nutrition → Settings → Open nutrition targets, or the Targets link)
+
+- **Profile** — sex, age (or birth date), height (ft/in or cm), activity level and goal; body weight comes from the
+  Weight log.
+- **Recommended values** — Dietary Reference Intakes (US National Academies, also used by Health Canada) for your
+  age group and sex, each labelled RDA, AI, UL or CDRR with its source. Calories use the IOM Estimated Energy
+  Requirement (age, sex, height, weight, activity; −15% for fat loss, +10% for muscle gain); protein is
+  0.85 g/kg (age 14–18) or 0.8 g/kg (19+), or 1.6 g/kg for muscle gain / fat loss (sports guideline); fat 30% and
+  carbohydrate the rest of calories within the AMDR. Height and weight don't change vitamin or mineral targets.
+- **Your own values** — edit any target or upper limit; clear it to go back. "Use my custom values" switches
+  between yours and the recommendations; "Restore recommended defaults" clears them. Targets only change
+  comparisons, never what you logged.
 
 **Everywhere**
 
@@ -116,6 +150,7 @@ habit-tracker/
 │   ├── health.js           Health & fitness: daily metrics, workouts, supplements, shopping, overview, widgets
 │   ├── nutrition.js        Food diary, Open Food Facts, barcode / label / meal-photo scanning, recipes, trends
 │   ├── strength.js         Strength training: exercise list, set logging, progress charts, records, history
+│   ├── micros.js           Vitamins & minerals: daily totals from food + supplements, targets, profile, alerts, history
 │   └── app.js              Routing, navigation, theme, reminders, startup
 ├── icons/                  App icons (192, 512, maskable, Apple touch)
 ├── tests/                  Node tests for the data logic (no dependencies)
@@ -213,6 +248,11 @@ server; anyone with access to your unlocked phone could read it, so use a token 
 
 - **Nutrition values are estimates for your own tracking**, not clinically verified data or medical advice.
   Open Food Facts is a community database; check products against the package.
+- **Vitamin and mineral totals are only as complete as the labels.** Canadian labels must list only potassium,
+  calcium and iron, so most foods leave other vitamins unknown; totals are then a minimum. Open Food Facts stores
+  vitamin A without saying whether it was µg RAE or IU, and folate without saying DFE or folic acid. Food labels
+  don't separate preformed vitamin A, added niacin or folic acid, so those supplement-only limits count supplements only.
+- **Reference values** cover healthy people aged 14+; pregnancy, breastfeeding and medical conditions aren't covered.
 - **Open Food Facts name search is unreliable from browsers.** Their service often refuses name searches from web
   pages ("busy"), while barcode lookups keep working. The app says so and falls back to your own foods.
 - **Barcode scanning on iPhone** uses a downloaded decoder (iPhone Safari has no built-in one); the first scan needs a
@@ -234,7 +274,7 @@ server; anyone with access to your unlocked phone could read it, so use a token 
 ## Updating the app later
 
 Upload the changed files to the repository (or `git push`). Also change the version on the first line of
-code in `sw.js` (currently `const CACHE = 'habits-v5'` → next `'habits-v6'`, and so on) so phones fetch the new files. Open the app
+code in `sw.js` (currently `const CACHE = 'habits-v6'` → next `'habits-v7'`, and so on) so phones fetch the new files. Open the app
 twice after updating: the first open downloads the update, the second one shows it. Your data is not affected.
 
 ## Data format
@@ -243,7 +283,7 @@ One JSON object, saved in the browser's `localStorage` under `habits.data` and u
 
 ```json
 {
-  "version": 6,
+  "version": 7,
   "trackers": [],
   "entries": { "2026-10-01": { "trackerId": 3 } },
   "settings": {},
@@ -252,7 +292,8 @@ One JSON object, saved in the browser's `localStorage` under `habits.data` and u
   "weight": { "unit": "lb", "goal": null, "start": null, "reminder": {},
               "entries": [{ "date": "2026-10-03", "time": "07:10", "kg": 84.0961, "note": "" }] },
   "health": { "metrics": [], "daily": { "2026-10-03": { "m_water": 1500 } }, "workouts": [], "templates": [],
-              "items": [], "routines": [], "intake": { "2026-10-03": { "routineId": { "s": "taken", "d": 1 } } },
+              "items": [], "routines": [{ "id": "rt…", "name": "Vitamin D", "facts": { "rows": [{ "k": "vitd", "a": 1000, "u": "iu" }], "mult": 1 } }],
+              "intake": { "2026-10-03": { "routineId": { "s": "taken", "d": 1, "n": { "vitd": 25 }, "ul": { "vitd": 25 } } } },
               "widgets": [], "categories": [], "settings": {},
               "exercises": [{ "id": "ex…", "name": "Bench Press", "group": "Chest" }] }
 }
@@ -260,7 +301,10 @@ One JSON object, saved in the browser's `localStorage` under `habits.data` and u
 
 `version` lets future releases migrate older data (see `MIGRATIONS` in `js/core.js`; version 1 backups,
 from before Finance existed, still import; version 3 → 4 only adds the empty `health` section; 5 → 6 builds
-the strength exercise list from lifts already in the workout log). A strength session is an entry in
+the strength exercise list from lifts already in the workout log; 6 → 7 moves an old sodium "target", which was
+always a limit, to `nutrition.limits.sodium`). `nutrition` also holds `profile`, custom `targets` / `limits`
+and `useCustom`. Vitamins and minerals are stored per food in the units listed in `N.NUTRIENTS` (vitamin A µg RAE,
+folate µg DFE). A strength session is an entry in
 `health.workouts[].exercises` with `exId` pointing at `health.exercises`, its `sets` (`reps`, `kg`) and optional `notes`.
 Stored units: weight kg, water ml, distance km, sleep and workout time in minutes. New tracker types are added with `HT.registerType` in `js/core.js`.
 

@@ -59,21 +59,51 @@
     ['iron', 'Iron', 'mg', 'iron', 1000, 'FE'],
     ['vitc', 'Vitamin C', 'mg', 'vitamin-c', 1000, 'VITC'],
     ['vitd', 'Vitamin D', 'µg', 'vitamin-d', 1e6, 'VITD'],
+    // Vitamins and minerals used by the Vitamins & minerals screen (micros.js). The 7th value marks them
+    // as "extra" so forms tuck them away. Vitamin A is µg RAE, folate µg DFE, niacin mg NE, vitamin E mg α-tocopherol.
+    ['vita', 'Vitamin A', 'µg', 'vitamin-a', 1e6, 'VITA_RAE', 1],
+    ['vite', 'Vitamin E', 'mg', 'vitamin-e', 1000, 'TOCPHA', 1],
+    ['vitk', 'Vitamin K', 'µg', 'vitamin-k', 1e6, '', 1],
+    ['vitk1', 'Vitamin K1', 'µg', 'phylloquinone', 1e6, 'VITK1', 1],
+    ['vitk2', 'Vitamin K2', 'µg', '', 1e6, '', 1],
+    ['b1', 'Vitamin B1 (thiamin)', 'mg', 'vitamin-b1', 1000, 'THIA', 1],
+    ['b2', 'Vitamin B2 (riboflavin)', 'mg', 'vitamin-b2', 1000, 'RIBF', 1],
+    ['b3', 'Vitamin B3 (niacin)', 'mg', 'vitamin-pp', 1000, 'NIA', 1],
+    ['b5', 'Vitamin B5 (pantothenic acid)', 'mg', 'pantothenic-acid', 1000, 'PANTAC', 1],
+    ['b6', 'Vitamin B6', 'mg', 'vitamin-b6', 1000, 'VITB6A', 1],
+    ['b7', 'Vitamin B7 (biotin)', 'µg', 'biotin', 1e6, '', 1],
+    ['b9', 'Vitamin B9 (folate)', 'µg', 'vitamin-b9', 1e6, 'FOLDFE', 1],
+    ['b12', 'Vitamin B12', 'µg', 'vitamin-b12', 1e6, 'VITB12', 1],
+    ['choline', 'Choline', 'mg', 'choline', 1000, 'CHOLN', 1],
+    ['magnesium', 'Magnesium', 'mg', 'magnesium', 1000, 'MG', 1],
+    ['zinc', 'Zinc', 'mg', 'zinc', 1000, 'ZN', 1],
+    ['phosphorus', 'Phosphorus', 'mg', 'phosphorus', 1000, 'P', 1],
+    ['selenium', 'Selenium', 'µg', 'selenium', 1e6, 'SE', 1],
+    ['copper', 'Copper', 'mg', 'copper', 1000, 'CU', 1],
+    ['manganese', 'Manganese', 'mg', 'manganese', 1000, 'MN', 1],
+    ['iodine', 'Iodine', 'µg', 'iodine', 1e6, '', 1],
+    ['chromium', 'Chromium', 'µg', 'chromium', 1e6, '', 1],
+    ['molybdenum', 'Molybdenum', 'µg', 'molybdenum', 1e6, '', 1],
+    ['chloride', 'Chloride', 'mg', 'chloride', 1000, '', 1],
   ];
   N.NUTRIENTS = NUTRIENTS;
   const NK = NUTRIENTS.map((x) => x[0]);
   const MAIN = ['kcal', 'protein', 'carbs', 'fat'];
   const nutr = (k) => NUTRIENTS.find((x) => x[0] === k);
+  const EXTRA = new Set(NUTRIENTS.filter((x) => x[6]).map((x) => x[0]));
+  N.isExtra = (k) => EXTRA.has(k);
+  // Small amounts (copper, B vitamins…) keep 4 decimals so scaling a portion doesn't round them away.
+  const rk = (k, v) => (EXTRA.has(k) ? Math.round(v * 1e4) / 1e4 : r2(v));
   const TARGETS = [['kcal', 'Calories'], ['protein', 'Protein'], ['carbs', 'Carbohydrate'], ['fat', 'Fat'], ['fibre', 'Fibre'], ['sugar', 'Sugars (limit)'], ['sodium', 'Sodium (limit)']];
 
   /* Keeps only real, non-negative numbers; anything missing stays missing. */
   const normN = (o) => {
     const out = {};
     if (!o || typeof o !== 'object') return out;
-    NK.forEach((k) => { const v = nonneg(o[k]); if (v != null) out[k] = r2(v); });
+    NK.forEach((k) => { const v = nonneg(o[k]); if (v != null) out[k] = rk(k, v); });
     return out;
   };
-  N.scale = (n, f) => { const out = {}; Object.keys(n || {}).forEach((k) => { out[k] = r2(n[k] * f); }); return out; };
+  N.scale = (n, f) => { const out = {}; Object.keys(n || {}).forEach((k) => { out[k] = rk(k, n[k] * f); }); return out; };
   const hasN = (n) => n && Object.keys(n).length > 0;
   const normBasis = (b) => {
     const x = obj(b);
@@ -116,7 +146,9 @@
   };
   const unitLabel = (u, a) => (u === 'serving' ? (a === 1 ? 'serving' : 'servings') : u === 'portion' ? (a === 1 ? 'portion' : 'portions') : u);
   const amountText = (e) => HT.num(e.amount) + ' ' + unitLabel(e.unit, e.amount);
-  const fmtN = (k, v) => { const x = nutr(k); if (v == null) return '—'; return (k === 'kcal' ? Math.round(v).toLocaleString() : x[2] === 'g' ? HT.num(Math.round(v * 10) / 10) : HT.num(Math.round(v))) + (k === 'kcal' ? ' kcal' : ' ' + x[2]); };
+  // Whole numbers for large amounts, more decimals for small ones (e.g. 0.9 mg copper, 2.4 µg B12).
+  const smallNum = (v) => HT.num(v >= 100 ? Math.round(v) : v >= 10 ? Math.round(v * 10) / 10 : v >= 1 ? Math.round(v * 100) / 100 : Math.round(v * 1000) / 1000);
+  const fmtN = (k, v) => { const x = nutr(k); if (v == null) return '—'; return (k === 'kcal' ? Math.round(v).toLocaleString() : EXTRA.has(k) || ((k === 'iron' || k === 'vitd') && v < 10) ? smallNum(v) : x[2] === 'g' ? HT.num(Math.round(v * 10) / 10) : HT.num(Math.round(v))) + (k === 'kcal' ? ' kcal' : ' ' + x[2]); };
   N.fmtN = fmtN;
 
   /* ---------- data shape ---------- */
@@ -156,6 +188,7 @@
     const t = obj(r.targets);
     const targets = {};
     TARGETS.forEach((x) => { targets[x[0]] = pos(t[x[0]]); });
+    NK.forEach((k) => { if (!(k in targets) && pos(t[k]) != null) targets[k] = pos(t[k]); }); // custom vitamin / mineral targets
     const foods = arr(r.foods).filter((f) => f && typeof f === 'object' && str(f.name).trim()).map(normFood);
     const recipes = arr(r.recipes).filter((x) => x && str(x.name).trim()).map((x) => ({
       id: str(x.id, 40) || nid('rc'), name: str(x.name, 80).trim(), servings: pos(x.servings) || 1, notes: str(x.notes, 400),
@@ -170,7 +203,18 @@
       estimate: !!e.estimate, note: str(e.note, 200), createdAt: e.createdAt || new Date().toISOString(),
     }, normLine(e)));
     const s = obj(r.settings);
-    return { targets, meals, foods, recipes, entries, settings: { online: s.online !== false } };
+    const out = { targets, meals, foods, recipes, entries, settings: { online: s.online !== false } };
+    // Profile, custom upper limits and the custom/recommended switch are owned by micros.js; kept as-is if it isn't loaded.
+    return HT.micros ? HT.micros.normalize(out, r) : Object.assign(out, { limits: obj(r.limits), profile: obj(r.profile), useCustom: r.useCustom !== false });
+  };
+
+  /* Targets in effect for the diary, trends and widgets: the user's own values, or the recommended
+     defaults from micros.js. `sugar` and `sodium` are limits (shown as "… limit"). */
+  N.targets = () => {
+    const d = D();
+    if (!HT.micros) return d.targets;
+    const M = HT.micros, defs = M.defaults(), t = (k) => M.target(k, defs).target;
+    return { kcal: t('kcal'), protein: t('protein'), carbs: t('carbs'), fat: t('fat'), fibre: t('fibre'), sugar: d.useCustom ? d.targets.sugar : null, sodium: M.target('sodium', defs).ul };
   };
 
   /* ---------- totals ---------- */
@@ -201,7 +245,7 @@
       const vals = days.map((d) => d.total.n[k]).filter((v) => v != null);
       out.avg[k] = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
     });
-    const t = D().targets;
+    const t = N.targets();
     if (t.kcal) out.hit.kcal = days.filter((d) => d.total.n.kcal != null && Math.abs(d.total.n.kcal - t.kcal) <= t.kcal * 0.1).length;
     if (t.protein) out.hit.protein = days.filter((d) => (d.total.n.protein || 0) >= t.protein).length;
     return out;
@@ -228,7 +272,8 @@
     const nm = obj(p.nutriments);
     const pick = (suffix) => {
       const o = {};
-      NUTRIENTS.forEach((x) => { const v = nonneg(nm[x[3] + suffix]); if (v != null) o[x[0]] = v * x[4]; });
+      NUTRIENTS.forEach((x) => { if (!x[3]) return; const v = nonneg(nm[x[3] + suffix]); if (v != null) o[x[0]] = v * x[4]; });
+      if (o.b9 == null) { const v = nonneg(nm['folates' + suffix]); if (v != null) o.b9 = v * 1e6; }
       if (o.kcal == null) { const kj = nonneg(nm['energy-kj' + suffix]); if (kj != null) o.kcal = kj / 4.184; }
       return o;
     };
@@ -342,6 +387,9 @@
       potassium: new RegExp('potassium' + G + 'mg'),
       calcium: new RegExp('calcium' + G + 'mg'),
       iron: new RegExp('(?:\\biron\\b|\\bfer\\b)' + G + 'mg'),
+      magnesium: new RegExp('magn[eé]sium' + G + 'mg'),
+      zinc: new RegExp('\\bzinc\\b' + G + 'mg'),
+      phosphorus: new RegExp('(?:phosphorus|phosphore)' + G + 'mg'),
     };
     Object.keys(rules).forEach((k) => { const v = grab(rules[k]); if (v != null) out.n[k] = v; });
     return out;
@@ -361,6 +409,7 @@
     if (nonneg(x.calories) != null) o.kcal = x.calories;
     const tn = obj(x.totalNutrients);
     NUTRIENTS.forEach((n) => {
+      if (!n[5]) return;
       const v = tn[n[5]];
       if (!v || nonneg(v.quantity) == null || (n[0] === 'kcal' && o.kcal != null)) return;
       const unit = String(v.unit || '').toLowerCase();
@@ -748,7 +797,10 @@
       field('Serving as written on the label', textIn('nf-slabel', b.servingLabel, 'e.g. 3/4 cup (175 g)', 80), true) +
       '<div class="row2">' + field('Serving size', numIn('nf-sg', b.servingGrams, 'e.g. 175'), true) + field('Measured in', '<select id="nf-su">' + opt('g', 'grams (g)', b.liquid ? 'ml' : 'g') + opt('ml', 'millilitres (mL)', b.liquid ? 'ml' : 'g') + '</select>') + '</div>' +
       field('The values below are', '<select id="nf-per">' + opt('serving', 'Per serving (as on a Canadian label)', perLabel) + opt('100', 'Per 100 g / 100 mL', perLabel) + '</select>') +
-      '<div class="nfields">' + NUTRIENTS.map((x) => field(x[1] + ' (' + x[2] + ')', numIn('nf-' + x[0], per[x[0]] != null ? per[x[0]] : '', ''), x[0] !== 'kcal')).join('') + '</div>' +
+      '<div class="nfields">' + NUTRIENTS.filter((x) => !x[6]).map((x) => field(x[1] + ' (' + x[2] + ')', numIn('nf-' + x[0], per[x[0]] != null ? per[x[0]] : '', ''), x[0] !== 'kcal')).join('') + '</div>' +
+      '<details class="nmore"' + (NUTRIENTS.some((x) => x[6] && per[x[0]] != null) ? ' open' : '') + '><summary>More vitamins and minerals</summary>' +
+      '<p class="hint">Vitamin A in µg RAE, folate in µg DFE, as on current labels. Leave blank if the label doesn\'t list it — blanks count as unknown, not zero.</p>' +
+      '<div class="nfields">' + NUTRIENTS.filter((x) => x[6]).map((x) => field(x[1] + ' (' + x[2] + ')', numIn('nf-' + x[0], per[x[0]] != null ? per[x[0]] : '', ''), true)).join('') + '</div></details>' +
       '<p class="hint">' + (scan ? 'Check every number against the label before saving — text recognition makes mistakes. ' : '') + 'Leave values you don\'t have blank.</p>';
     sheet({
       title: existing ? 'Edit food' : scan ? 'Scan a nutrition label' : 'New food',
@@ -1080,12 +1132,10 @@
   /* ---------- settings ---------- */
 
   N.openSettings = () => {
-    const t = D().targets;
-    const unit = (k) => (nutr(k) || [])[2];
     sheet({
       title: 'Nutrition settings',
-      html: '<h3>Daily targets</h3><p class="hint gap-bottom">Optional. Use your own numbers or ones from your clinician or dietitian — the app doesn\'t set targets for you.</p>' +
-        '<div class="nfields">' + TARGETS.map((x) => field(x[1] + ' (' + unit(x[0]) + ')', numIn('nt-' + x[0], t[x[0]], 'No target'), true)).join('') + '</div>' +
+      html: '<h3>Daily targets</h3><p class="hint gap-bottom">Calories, macros, vitamins and minerals — recommended values for your profile, or your own.</p>' +
+        '<a class="btn wide" href="#/nutrition/targets" data-close>Open nutrition targets</a>' +
         '<h3 class="sp">Meal categories</h3><ul class="dlist" id="nm-list">' + D().meals.map((m) => '<li><div class="drow"><span class="dname">' + esc(m.name) + '</span>' +
           (DEFAULT_MEALS.some((d) => d[0] === m.id) ? '' : '<button type="button" class="icon-btn" data-meal-rm="' + m.id + '" aria-label="Remove ' + esc(m.name) + '">' + icon.x + '</button>') + '</div></li>').join('') + '</ul>' +
         '<div class="add-inline"><input id="nm-new" type="text" maxlength="30" placeholder="e.g. Pre-workout"><button type="button" class="btn" data-meal-add>Add</button></div>' +
@@ -1120,13 +1170,6 @@
         });
       },
       onSave: (wrap) => {
-        const next = {};
-        for (const x of TARGETS) {
-          const raw = val(wrap, '#nt-' + x[0]);
-          if (raw !== '' && pos(raw) == null) { HT.toast(x[1] + ' target must be above 0, or blank'); return false; }
-          next[x[0]] = pos(raw);
-        }
-        D().targets = next;
         D().settings.online = HT.$('#ns-online', wrap).checked;
         setToken(val(wrap, '#ns-token'));
         HT.toast('Nutrition settings saved');
@@ -1136,8 +1179,8 @@
 
   /* ---------- screens ---------- */
 
-  const SUB = [['', 'Diary'], ['trends', 'Trends'], ['foods', 'Foods'], ['recipes', 'Recipes']];
-  const subnav = (cur) => '<div class="segmented gap-bottom" role="tablist">' + SUB.map((t) => '<a href="#/nutrition' + (t[0] ? '/' + t[0] : '') + '"' + (t[0] === cur ? ' aria-current="page"' : '') + '>' + t[1] + '</a>').join('') + '</div>';
+  const SUB = [['', 'Diary'], ['micros', 'Vitamins'], ['trends', 'Trends'], ['foods', 'Foods'], ['recipes', 'Recipes']];
+  const subnav = (cur) => '<div class="segmented gap-bottom" role="tablist">' + SUB.filter((t) => t[0] !== 'micros' || HT.micros).map((t) => '<a href="#/nutrition' + (t[0] ? '/' + t[0] : '') + '"' + (t[0] === cur ? ' aria-current="page"' : '') + '>' + t[1] + '</a>').join('') + '</div>';
   const head = (cur) => (HT.health ? HT.health.head('Nutrition', '<button type="button" class="btn" data-action="n-settings">' + icon.settings + '<span>Settings</span></button>') + HT.health.subnav('nutrition')
     : '<header class="page-head"><div><div class="eyebrow">Health</div><h1>Nutrition</h1></div></header>') + subnav(cur);
 
@@ -1152,7 +1195,7 @@
     const key = N.vs.day || HT.today();
     const today = HT.today();
     const tot = N.dayTotal(key);
-    const t = D().targets;
+    const t = N.targets();
     const n = tot.n;
     let html = head('') + '<div class="hday"><button type="button" class="icon-btn" data-action="n-day" data-d="-1" aria-label="Previous day">' + icon.back + '</button>' +
       '<div class="hday-l"><b>' + (key === today ? 'Today' : esc(longDate(key))) + '</b>' + (key === today ? '<span>' + esc(longDate(key)) + '</span>' : '<button type="button" class="linkish" data-action="n-day" data-d="0">Back to today</button>') + '</div>' +
@@ -1161,14 +1204,15 @@
     const kcal = n.kcal || 0;
     html += '<section class="panel-card ncal"><div class="ncal-top"><div><div class="tile-l">Calories</div><div class="w-big">' + Math.round(kcal).toLocaleString() + '<small> kcal</small></div>' +
       (t.kcal ? '<div class="muted">' + (kcal <= t.kcal ? Math.round(t.kcal - kcal).toLocaleString() + ' left of ' + Math.round(t.kcal).toLocaleString() : Math.round(kcal - t.kcal).toLocaleString() + ' over ' + Math.round(t.kcal).toLocaleString()) + '</div>'
-        : '<button type="button" class="linkish" data-action="n-settings">Set daily targets</button>') + '</div>' +
+        : '<a class="linkish" href="#/nutrition/targets">Set daily targets</a>') + '</div>' +
       '<button type="button" class="btn btn-primary" data-action="n-add">' + icon.plus + '<span>Add food</span></button></div>' +
       (t.kcal ? '<div class="fbar big' + (kcal > t.kcal ? ' over' : '') + '"><i style="width:' + Math.min(100, (kcal / t.kcal) * 100) + '%"></i></div>' : '') +
-      '<div class="nmacros">' + progress('protein', n.protein, t.protein) + progress('carbs', n.carbs, t.carbs) + progress('fat', n.fat, t.fat) + '</div>' +
-      '<details class="nmore"><summary>Fibre, sugars, sodium and more</summary>' + progress('fibre', n.fibre, t.fibre) + progress('sugar', n.sugar, t.sugar, true) + progress('sodium', n.sodium, t.sodium, true) +
-      NUTRIENTS.filter((x) => !MAIN.includes(x[0]) && !['fibre', 'sugar', 'sodium'].includes(x[0]) && n[x[0]] != null).map((x) => '<div class="frow"><span>' + x[1] + '</span><b>' + fmtN(x[0], n[x[0]]) + '</b></div>').join('') + '</details>' +
+      '<div class="nmacros">' + progress('protein', n.protein, t.protein) + progress('carbs', n.carbs, t.carbs) + progress('fat', n.fat, t.fat) + progress('fibre', n.fibre, t.fibre) + '</div>' +
+      '<details class="nmore"><summary>Sugars, sodium and more</summary>' + progress('sugar', n.sugar, t.sugar, true) + progress('sodium', n.sodium, t.sodium, true) +
+      NUTRIENTS.filter((x) => !MAIN.includes(x[0]) && !['fibre', 'sugar', 'sodium'].includes(x[0]) && !(HT.micros && HT.micros.tracks(x[0])) && !x[6] && n[x[0]] != null).map((x) => '<div class="frow"><span>' + x[1] + '</span><b>' + fmtN(x[0], n[x[0]]) + '</b></div>').join('') + '</details>' +
       (tot.count && Object.keys(tot.missing).some((k) => MAIN.includes(k)) ? '<p class="hint">Some foods don\'t list every value, so totals may be low.</p>' : '') +
-      (N.entriesOn(key).some((e) => e.estimate) ? '<p class="hint">Includes photo estimates.</p>' : '') + '</section>';
+      (N.entriesOn(key).some((e) => e.estimate) ? '<p class="hint">Includes photo estimates.</p>' : '') + '</section>' +
+      (HT.micros ? HT.micros.diaryExtras(key) : '');
 
     html += '<div class="nquick">' + '<button type="button" class="btn" data-action="n-scan">' + icon.barcode + '<span>Scan barcode</span></button>' +
       '<button type="button" class="btn" data-action="n-photo">' + icon.camera + '<span>Meal photo</span></button>' +
@@ -1192,7 +1236,7 @@
     const days = N.vs.period;
     const from = HT.addDays(today, -days + 1);
     const p = N.period(from, today);
-    const t = D().targets;
+    const t = N.targets();
     let html = head('trends') + '<div class="segmented gap-bottom">' + [[7, 'Week'], [30, 'Month'], [90, '3 months']].map((x) => '<button type="button" data-action="n-period" data-v="' + x[0] + '" aria-pressed="' + (x[0] === days) + '">' + x[1] + '</button>').join('') + '</div>';
     if (!p.days) return html + '<section class="empty"><h2>No food logged in this period</h2><p>Trends appear once you log food. Days without entries are left out rather than counted as zero.</p><button type="button" class="btn btn-primary btn-lg" data-action="n-add">' + icon.plus + '<span>Add food</span></button></section>';
     const avg = (k) => (p.avg[k] == null ? '—' : fmtN(k, p.avg[k]));
@@ -1292,7 +1336,11 @@
     return html;
   }
 
+  N.head = head;
+  N.progress = progress;
   HT.views.nutrition = (tab) => {
+    if (tab === 'micros' && HT.micros) return HT.micros.view();
+    if (tab === 'targets' && HT.micros) return HT.micros.targetsView();
     if (tab === 'trends') return trends();
     if (tab === 'foods') return foods();
     if (tab === 'recipes') return recipes();
@@ -1325,7 +1373,7 @@
 
   N.todayWidget = () => {
     const today = HT.today();
-    const tot = N.dayTotal(today), t = D().targets, n = tot.n;
+    const tot = N.dayTotal(today), t = N.targets(), n = tot.n;
     const kcal = n.kcal || 0;
     const line = tot.count ? fmtN('kcal', kcal) + (t.kcal ? ' of ' + fmtN('kcal', t.kcal) : '') + ' · protein ' + fmtN('protein', n.protein || 0) + (t.protein ? ' of ' + fmtN('protein', t.protein) : '') : 'Nothing logged yet today';
     return '<section class="widget" data-widget="nutrition"><div class="widget-h"><h2 class="section-title">Nutrition</h2><a class="linkish" href="#/nutrition">Diary</a></div>' +
